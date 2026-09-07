@@ -1,0 +1,175 @@
+/* ====================================================================
+   HAPPINESS INDEX - ULTRA-PREMIUM LIGHT UI DESIGN SYSTEM
+   ==================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap');
+
+:root {
+  --bg-primary: #F8FAFC;
+  --bg-secondary: #F1F5F9;
+  --bg-card: #FFFFFF;
+  
+  --text-main: #0F172A;
+  --text-muted: #64748B;
+  --text-light: #94A3B8;
+
+  --accent-indigo: #4F46E5;
+  --accent-indigo-light: #EEF2FF;
+  
+  --accent-emerald: #10B981;
+  --accent-emerald-light: #D1FAE5;
+  
+  --accent-rose: #F43F5E;
+  --accent-rose-light: #FFE4E6;
+
+  --border-subtle: #E2E8F0;
+  --border-card: #CBD5E1;
+
+  --shadow-sm: 0 2px 4px rgba(15, 23, 42, 0.03);
+  --shadow-md: 0 10px 15px -3px rgba(15, 23, 42, 0.05), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
+  --shadow-lg: 0 25px 30px -5px rgba(15, 23, 42, 0.08), 0 12px 16px -8px rgba(15, 23, 42, 0.04);
+  --shadow-card: 0 20px 40px -15px rgba(15, 23, 42, 0.07);
+
+  --font-heading: 'Outfit', sans-serif;
+  --font-body: 'Plus Jakarta Sans', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  touch-action: manipulation;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+/* Glassmorphism containers */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.glass-nav {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+/* Custom Card Container */
+.tinder-card-shadow {
+  box-shadow: var(--shadow-card);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 2rem;
+  background: #FFFFFF;
+}
+
+/* Badge animations */
+.swipe-badge-positive {
+  border: 3px solid var(--accent-emerald);
+  color: var(--accent-emerald);
+  background: rgba(209, 250, 229, 0.95);
+  font-family: var(--font-heading);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.swipe-badge-negative {
+  border: 3px solid var(--accent-rose);
+  color: var(--accent-rose);
+  background: rgba(255, 228, 230, 0.95);
+  font-family: var(--font-heading);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+/* Button pulse & subtle hover */
+.btn-primary {
+  background: var(--accent-indigo);
+  color: #FFFFFF;
+  font-weight: 600;
+  border-radius: 1rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+}
+
+.btn-secondary {
+  background: #FFFFFF;
+  color: var(--text-main);
+  border: 1px solid var(--border-subtle);
+  font-weight: 600;
+  border-radius: 1rem;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: var(--bg-secondary);
+  border-color: var(--border-card);
+}
+
+/* Progress bar animated fills */
+.progress-fill {
+  transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Custom Scrollbar for Admin Dashboard */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* Prevent unwanted mobile pull-to-refresh during drag */
+.prevent-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Heart & X Particle Burst Keyframes */
+.animate-particle {
+  animation: particleBurst cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes particleBurst {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(0.5) rotate(0deg);
+  }
+  60% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--tx, 0px), var(--ty, -100px)) scale(1.25) rotate(var(--rot, 20deg));
+  }
+}
+

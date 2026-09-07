@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>HAPPINESS INDEX - Anonymous Student Feedback Portal</title>
+  <meta name="description" content="Anonymous student feedback platform for RSMART / Intellect student cohort.">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            heading: ['Outfit', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              900: '#312e81',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- React 18, Babel, Confetti -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+  <style>
+    :root {
+      --bg-primary: #F8FAFC;
+      --font-heading: 'Outfit', sans-serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+    }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #F8FAFC;
+      color: #0F172A;
+      -webkit-font-smoothing: antialiased;
+      user-select: none;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      font-family: 'Outfit', sans-serif;
+    }
+    .tinder-card-shadow {
+      box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(226, 232, 240, 0.9);
+    }
+    .glass-nav {
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(226, 232, 240, 0.85);
+    }
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(226, 232, 240, 0.9);
+    }
+    .animate-fadeIn {
+      animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .animate-scaleUp {
+      animation: scaleUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes scaleUp {
+      from { opacity: 0; transform: scale(0.92); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .swipe-card {
+      transition: transform 0.15s ease-out, box-shadow 0.2s ease;
+      will-change: transform;
+      touch-action: none;
+    }
+    .swipe-badge-positive {
+      border: 3px solid #10B981;
+      color: #059669;
+      background: rgba(209, 250, 229, 0.95);
+    }
+    .swipe-badge-negative {
+      border: 3px solid #F43F5E;
+      color: #E11D48;
+      background: rgba(255, 228, 230, 0.95);
+    }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef } = React;
+
+    // ====================================================================
+    // MASTER COHORT DATA
+    // ====================================================================
+    const ORDERED_CATEGORIES = [
+      { id: 'institution', name: 'INSTITUTION', description: 'Campus & academic infrastructure', icon: '🏛️' },
+      { id: 'pedagogy', name: 'PEDAGOGY', description: 'Learning methodology & classroom engagement', icon: '📚' },
+      { id: 'faculty', name: 'FACULTY', description: 'Direct faculty mentorship & teaching feedback', icon: '👨‍🏫' },
+      { id: 'career', name: 'CAREER & INDUSTRY', description: 'Industry exposure, internships & networking', icon: '💼' },
+      { id: 'campus_life', name: 'CAMPUS LIFE', description: 'Vibrant events, fests, recreation & culture', icon: '✨' },
+    ];
+
+    const OFFICIAL_FEEDBACK_CARDS = {
+      institution: [
+        { id: 'inst-1', categoryId: 'institution', track: 'general', cardText: 'Campus Facilities', description: 'Modern infrastructure, clean classrooms, and comfortable study areas.' },
+        { id: 'inst-2', categoryId: 'institution', track: 'general', cardText: 'Classroom Environment', description: 'Interactive smart rooms with air conditioning and modern AV technology.' },
+        { id: 'inst-3', categoryId: 'institution', track: 'general', cardText: 'Learning Infrastructure', description: 'High-speed Wi-Fi, computer labs, and digital learning management tools.' },
+        { id: 'inst-4', categoryId: 'institution', track: 'general', cardText: 'Academic Support', description: 'Remedial sessions, mentoring programs, and academic guidance.' },
+        { id: 'inst-5', categoryId: 'institution', track: 'general', cardText: 'Student-Friendly Services', description: 'Empathetic campus policies, transparent feedback mechanisms, and welfare.' },
+        { id: 'inst-6', categoryId: 'institution', track: 'general', cardText: 'Research Resources', description: 'Support for academic papers, case studies, and research publications.' },
+      ],
+      pedagogy: [
+        { id: 'ped-2', categoryId: 'pedagogy', track: 'general', cardText: 'Case Study Learning', description: 'Analyzing Harvard & real corporate case studies to build strategic thinking.' },
+        { id: 'ped-3', categoryId: 'pedagogy', track: 'general', cardText: 'Business Simulation', description: 'Engaging in gamified business decision-making and market simulations.' },
+        { id: 'ped-4', categoryId: 'pedagogy', track: 'general', cardText: 'Hands-on Activities', description: 'Practical workshops, prototyping sessions, and live business experiments.' },
+        { id: 'ped-5', categoryId: 'pedagogy', track: 'general', cardText: 'Industry-Based Assignments', description: 'Assignments directly linked with current corporate models and market trends.' },
+        { id: 'ped-6', categoryId: 'pedagogy', track: 'general', cardText: 'Real-World Problem Solving', description: 'Tackling authentic organizational challenges using analytical frameworks.' },
+        { id: 'ped-7', categoryId: 'pedagogy', track: 'general', cardText: 'Presentation & Discussion', description: 'Presenting solutions to peers and faculty to refine communication skills.' },
+        { id: 'ped-9', categoryId: 'pedagogy', track: 'general', cardText: 'Teaching Quality', description: 'Clear, structured lectures delivered with deep domain expertise.' },
+        { id: 'ped-10', categoryId: 'pedagogy', track: 'general', cardText: 'Doubt Clarity', description: 'Prompt and clear resolution of concepts during and after lectures.' },
+        { id: 'ped-11', categoryId: 'pedagogy', track: 'general', cardText: 'Practical Examples', description: 'Illustrating complex theoretical topics using clear corporate examples.' },
+        { id: 'ped-12', categoryId: 'pedagogy', track: 'general', cardText: 'Test & Assessment', description: 'Fair, constructive evaluations that test actual subject mastery.' },
+        { id: 'ped-13', categoryId: 'pedagogy', track: 'general', cardText: 'Interactive Classes', description: 'Interactive sessions encouraging active participation and discussion.' },
+      ],
+      career: [
+        { id: 'car-1', categoryId: 'career', track: 'general', cardText: 'Live Industry Projects', description: 'Working directly on live consulting or operational briefs for companies.' },
+        { id: 'car-2', categoryId: 'career', track: 'general', cardText: 'Internship Opportunities', description: 'Quality summer internship placements with leading organizations.' },
+        { id: 'car-3', categoryId: 'career', track: 'general', cardText: 'Industry Expert Sessions', description: 'Deep-dive masterclasses delivered by C-suite executives and experts.' },
+        { id: 'car-4', categoryId: 'career', track: 'general', cardText: 'Company Visits', description: 'Industrial tours and visits to corporate headquarters and factories.' },
+        { id: 'car-5', categoryId: 'career', track: 'general', cardText: 'Professional Networking', description: 'Platforms to connect with alumni, industry mentors, and recruiters.' },
+        { id: 'car-6', categoryId: 'career', track: 'general', cardText: 'Career-Focused Training', description: 'Soft skills, resume building, mock interviews, and career coaching.' },
+      ],
+      campus_life: [
+        { id: 'camp-1', categoryId: 'campus_life', track: 'general', cardText: 'Campus Events', description: 'Vibrant flagship fests, academic conclaves, and management summits.' },
+        { id: 'camp-2', categoryId: 'campus_life', track: 'general', cardText: 'Clubs & Communities', description: 'Active interest clubs for marketing, finance, analytics, and leadership.' },
+        { id: 'camp-3', categoryId: 'campus_life', track: 'general', cardText: 'Cultural Activities', description: 'Music, dance, drama, and multicultural celebrations across the year.' },
+        { id: 'camp-4', categoryId: 'campus_life', track: 'general', cardText: 'Cafeteria & Social Spaces', description: 'Hygienic dining areas, lounge zones, and comfortable food courts.' },
+        { id: 'camp-5', categoryId: 'campus_life', track: 'general', cardText: 'Campus Environment', description: 'Green, peaceful, safe, and inspiring campus surroundings.' },
+        { id: 'camp-6', categoryId: 'campus_life', track: 'general', cardText: 'Celebrations & Festivals', description: 'Joyful festival celebrations creating memorable campus experiences.' },
+      ],
+    };
+
+    OFFICIAL_FEEDBACK_CARDS.pedagogy['Project-Based Learning'] = OFFICIAL_FEEDBACK_CARDS.pedagogy;
+    OFFICIAL_FEEDBACK_CARDS.pedagogy['Training-Based Learning'] = OFFICIAL_FEEDBACK_CARDS.pedagogy;
+
+    const OFFICIAL_FACULTY_CARDS = [
+      { id: 'fac-card-1', cardText: 'Mentorship & Guidance', description: 'Personalized academic and career guidance provided by the faculty.' },
+      { id: 'fac-card-2', cardText: 'Approachability', description: 'Ease of approaching the faculty for queries, feedback, or support.' },
+      { id: 'fac-card-3', cardText: 'Interactive Teaching', description: 'Ability to create an engaging, dialogical classroom atmosphere.' },
+      { id: 'fac-card-4', cardText: 'Practical Explanation', description: 'Breaking down complex concepts with clear real-world business examples.' },
+      { id: 'fac-card-5', cardText: 'Individual Attention', description: 'Recognizing individual learning needs and providing constructive feedback.' },
+      { id: 'fac-card-6', cardText: 'Motivation & Encouragement', description: 'Inspiring students to push boundaries and pursue excellence.' },
+    ];
+
+    const INITIAL_FACULTY_LIST = [
+      { id: 'fac-1', facultyName: 'Jeni Priya', programme: 'RTC - RSMART MBA', year: 'First Year' },
+      { id: 'fac-2', facultyName: 'Karnalingesh', programme: 'RTC - RSMART MBA', year: 'First Year' },
+      { id: 'fac-3', facultyName: 'Jeni Priya', programme: 'RTC - RSMART MBA', year: 'Second Year' },
+      { id: 'fac-4', facultyName: 'Karnalingesh', programme: 'RTC - RSMART MBA', year: 'Second Year' },
+      { id: 'fac-5', facultyName: 'Jeni Priya', programme: 'RGU - RSMART MBA', year: 'First Year' },
+      { id: 'fac-6', facultyName: 'Karnalingesh', programme: 'RGU - RSMART MBA', year: 'First Year' },
+      { id: 'fac-7', facultyName: 'Jeni Priya', programme: 'RGU - RSMART MBA', year: 'Second Year' },
+      { id: 'fac-8', facultyName: 'Karnalingesh', programme: 'RGU - RSMART MBA', year: 'Second Year' },
+    ];
+
+    // ====================================================================
+    // COMPONENTS
+    // ====================================================================
+
+    function LogoHeader({ session, progress, total, onResetSession }) {
+      const isRgu = session?.programme?.includes('RGU');
+      const isRtc = session?.programme?.includes('RTC');
+
+      return (
+        <header className="sticky top-0 z-40 glass-nav px-4 sm:px-8 py-3 transition-all">
+          <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
+            {isRgu ? (
+              <>
+                {/* RGU MBA: RTC is REMOVED. Left: RAISE SMART, Right: RGU */}
+                <div className="flex items-center justify-start flex-1">
+                  <div className="flex items-center gap-2">
+                    <img
+                      src="./logos/raisesmart-logo.png"
+                      onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline-block'; }}
+                      alt="RAISE SMART"
+                      className="h-7 sm:h-9 w-auto object-contain"
+                    />
+                    <span className="hidden text-xs font-black text-indigo-700 tracking-tight">RAISE SMART</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 flex-1">
+                  <div className="flex items-center gap-2">
+                    <img
+                      src="./logos/rgu-logo.png"
+                      onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline-block'; }}
+                      alt="RGU Logo"
+                      className="h-7 sm:h-9 w-auto object-contain"
+                    />
+                    <span className="hidden text-xs font-black text-slate-800 tracking-tight">RGU</span>
+                  </div>
+
+                  {session && total > 0 && (
+                    <div className="flex items-center gap-2 bg-indigo-50/90 border border-indigo-100 px-3 py-1 rounded-xl">
+                      <span className="w-2 h-2 rounded-full bg-indigo-600 animate-ping"></span>
+                      <span className="text-xs font-bold text-slate-700">
+                        {progress} <span className="text-slate-400">/</span> {total}
+                      </span>
+                    </div>
+                  )}
+
+                  {session && onResetSession && (
+                    <button
+                      type="button"
+                      onClick={onResetSession}
+                      className="text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2.5 py-1 rounded-xl transition-all flex items-center gap-1 shadow-sm"
+                      title="Reset survey and return to Step 1"
+                    >
+                      <span>🔄</span>
+                      <span className="hidden sm:inline">Start Over</span>
+                    </button>
+                  )}
+                </div>
+              </>
+            ) : isRtc ? (
+              <>
+                {/* RTC MBA: RGU is REMOVED. Left: RAISE SMART Logo, Right: RTC Logo */}
+                <div className="flex items-center justify-start flex-1">
+                  <div className="flex items-center gap-2">
+                    <img
+                      src="./logos/raisesmart-logo.png"
+                      onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline-block'; }}
+                      alt="RAISE SMART"
+                      className="h-7 sm:h-9 w-auto object-contain"
+                    />
+                    <span className="hidden text-xs font-black text-indigo-700 tracking-tight">RAISE SMART</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 flex-1">
+                  <div className="flex items-center gap-2">
+                    <img
+                      src="./logos/rtc-logo.png"
+                      onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline-block'; }}
+                      alt="RTC Logo"
+                      className="h-7 sm:h-9 w-auto object-contain"
+                    />
+                    <span className="hidden text-xs font-black text-slate-800 tracking-tight">RTC</span>
+                  </div>
+
+                  {session && total > 0 && (
+                    <div className="flex items-center gap-2 bg-indigo-50/90 border border-indigo-100 px-3 py-1 rounded-xl">
+                      <span className="w-2 h-2 rounded-full bg-indigo-600 animate-ping"></span>
+                      <span className="text-xs font-bold text-slate-700">
+                        {progress} <span className="text-slate-400">/</span> {total}
+                      </span>
+                    </div>
+                  )}
+
+                  {session && onResetSession && (
+                    <button
+                      type="button"
+                      onClick={onResetSession}
+                      className="text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2.5 py-1 rounded-xl transition-all flex items-center gap-1 shadow-sm"
+                      title="Reset survey and return to Step 1"
+                    >
+                      <span>🔄</span>
+                      <span className="hidden sm:inline">Start Over</span>
+                    </button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Initial Default: RTC (Left), RAISE SMART (Center), RGU (Right) */}
+                <div className="flex items-center justify-start flex-1">
+                  <div className="flex items-center gap-2">
+                    <img
+                      src="./logos/rtc-logo.png"
+                      onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline-block'; }}
+                      alt="RTC Logo"
+                      className="h-7 sm:h-9 w-auto object-contain"
+                    />
+                    <span className="hidden text-xs font-black text-slate-800 tracking-tight">RTC</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-center flex-1">
+                  <div className="flex items-center gap-2">
+                    <img
+                      src="./logos/raisesmart-logo.png"
+                      onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline-block'; }}
+                      alt="RAISE SMART"
+                      className="h-7 sm:h-9 w-auto object-contain"
+                    />
+                    <span className="hidden text-xs font-black text-indigo-700 tracking-tight">RAISE SMART</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 flex-1">
+                  <div className="flex items-center gap-2">
+                    <img
+                      src="./logos/rgu-logo.png"
+                      onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline-block'; }}
+                      alt="RGU Logo"
+                      className="h-7 sm:h-9 w-auto object-contain"
+                    />
+                    <span className="hidden text-xs font-black text-slate-800 tracking-tight">RGU</span>
+                  </div>
+
+                  {session && onResetSession && (
+                    <button
+                      type="button"
+                      onClick={onResetSession}
+                      className="text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2.5 py-1 rounded-xl transition-all flex items-center gap-1 shadow-sm"
+                      title="Reset survey and return to Step 1"
+                    >
+                      <span>🔄</span>
+                      <span className="hidden sm:inline">Start Over</span>
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </header>
+      );
+    }
+
+    function OnboardingModal({ onStart, onProgrammeChange }) {
+      const [gender, setGender] = useState('');
+      const [programme, setProgramme] = useState('');
+      const [year, setYear] = useState('');
+      const [learningTrack, setLearningTrack] = useState('');
+
+      const handleProgrammeSelect = (prog) => {
+        setProgramme(prog);
+        if (prog.includes('RTC') && year === 'Second Year') {
+          setYear('');
+        }
+        if (onProgrammeChange) onProgrammeChange(prog);
+      };
+
+      const isValid = gender && programme && year && learningTrack;
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!isValid) return;
+        onStart({ gender, programme, year, learningTrack });
+      };
+
+      return (
+        <div className="min-h-[85vh] flex items-center justify-center p-4 sm:p-6">
+          <div className="w-full max-w-xl bg-white rounded-3xl p-6 sm:p-10 border border-slate-200/90 shadow-2xl relative overflow-hidden animate-fadeIn">
+            {/* Header Badge */}
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-700 text-xs font-extrabold px-3.5 py-1.5 rounded-full uppercase tracking-wider mb-3 border border-indigo-100">
+                <span>✨</span> Student Experience Index
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2">
+                Your Voice. Your Impact.
+              </h1>
+              <p className="text-sm text-slate-500 font-medium max-w-md mx-auto">
+                Swipe left/right to share confidential insights on campus, learning, faculty and opportunities.
+              </p>
+            </div>
+
+            {/* Privacy Shield */}
+            <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 mb-7 flex items-start gap-3">
+              <div className="p-2 bg-emerald-100 text-emerald-700 rounded-xl text-sm font-bold">🔒</div>
+              <div className="text-xs text-slate-600 leading-relaxed">
+                <strong className="text-slate-900 block font-bold mb-0.5">100% Anonymous Guaranteed</strong>
+                No student ID, name, email, or registration number is ever recorded.
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Gender */}
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-2">
+                  01. Gender
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {['Male', 'Female', 'Other', 'Prefer not to say'].map((opt) => (
+                    <button
+                      type="button"
+                      key={opt}
+                      onClick={() => setGender(opt)}
+                      className={`py-2.5 px-3 text-xs font-bold rounded-xl border transition-all text-center ${
+                        gender === opt ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Programme */}
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-2">
+                  02. Campus & Cohort
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {['RTC - RSMART MBA', 'RGU - RSMART MBA'].map((prog) => (
+                    <button
+                      type="button"
+                      key={prog}
+                      onClick={() => handleProgrammeSelect(prog)}
+                      className={`p-3.5 rounded-2xl border text-left transition-all ${
+                        programme === prog ? 'bg-indigo-50 border-indigo-600 text-indigo-900 font-extrabold shadow-sm' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700 font-semibold'
+                      }`}
+                    >
+                      {prog}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Year */}
+              {programme && (
+                <div className="animate-fadeIn">
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-2">
+                    03. Academic Year
+                  </label>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {['First Year', 'Second Year'].map((yr) => (
+                      <button
+                        type="button"
+                        key={yr}
+                        onClick={() => setYear(yr)}
+                        className={`py-3 px-4 text-xs font-bold rounded-xl border transition-all text-center ${
+                          year === yr ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                        }`}
+                      >
+                        {yr}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Learning Track */}
+              {year && (
+                <div className="animate-fadeIn">
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-2">
+                    04. Primary Pedagogy Track
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {[
+                      { title: 'Project-Based Learning', desc: 'Real-world projects, live cases & business simulations.' },
+                      { title: 'Training-Based Learning', desc: 'Structured modules, lecture masterclasses & doubt resolution.' },
+                    ].map((tr) => (
+                      <button
+                        type="button"
+                        key={tr.title}
+                        onClick={() => setLearningTrack(tr.title)}
+                        className={`p-3.5 rounded-2xl border text-left transition-all ${
+                          learningTrack === tr.title ? 'bg-indigo-50 border-indigo-600 text-indigo-900 font-extrabold shadow-sm' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
+                        }`}
+                      >
+                        <div className="text-xs font-black text-slate-900 mb-1">{tr.title}</div>
+                        <div className="text-[11px] text-slate-500 leading-tight">{tr.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={!isValid}
+                  className={`w-full py-4 rounded-2xl font-extrabold text-sm transition-all flex items-center justify-center gap-2 ${
+                    isValid ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-[0.99]' : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  }`}
+                >
+                  Start Feedback Journey →
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
+    function CategorySelection({ categories, responses, onSelectCategory, onCompleteAll, totalRequiredCards, onResetSession }) {
+      const isCategoryCompleted = (catId, reqCount) => {
+        const count = responses.filter(r => r.categoryId === catId).length;
+        return count >= reqCount && reqCount > 0;
+      };
+
+      const allDone = responses.length >= totalRequiredCards && totalRequiredCards > 0;
+
+      return (
+        <div className="max-w-3xl mx-auto px-4 py-8 animate-fadeIn">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2">
+              <span className="text-xs font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+                Overview
+              </span>
+              {onResetSession && (
+                <button
+                  type="button"
+                  onClick={onResetSession}
+                  className="text-[11px] font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-1 rounded-full border border-rose-200 transition-all flex items-center gap-1 shadow-sm"
+                >
+                  <span>🔄</span>
+                  <span>Start New Feedback (Step 1)</span>
+                </button>
+              )}
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">Select Feedback Category</h2>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+              Complete each category below. You can do them in sequence or pick any remaining module.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            {categories.map((cat, idx) => {
+              const catResponses = responses.filter(r => r.categoryId === cat.id);
+              const isDone = catResponses.length >= cat.totalCards && cat.totalCards > 0;
+              const percent = cat.totalCards > 0 ? Math.min(100, Math.round((catResponses.length / cat.totalCards) * 100)) : 0;
+
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => onSelectCategory(cat.id)}
+                  className={`p-5 rounded-3xl text-left border transition-all relative overflow-hidden group ${
+                    isDone 
+                      ? 'bg-emerald-50/50 border-emerald-300 hover:border-emerald-500' 
+                      : 'bg-white border-slate-200 hover:border-indigo-500 hover:shadow-md'
+                  }`}
+                >
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-xl p-2 bg-slate-100 rounded-2xl">{cat.icon}</span>
+                    {isDone ? (
+                      <span className="text-xs font-black text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full flex items-center gap-1">
+                        ✓ Completed
+                      </span>
+                    ) : (
+                      <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
+                        {catResponses.length} / {cat.totalCards} cards
+                      </span>
+                    )}
+                  </div>
+
+                  <h3 className="text-base font-black text-slate-900 group-hover:text-indigo-600 transition-colors">
+                    {cat.name}
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1 mb-4 leading-relaxed font-medium">
+                    {cat.description}
+                  </p>
+
+                  {/* Micro progress bar */}
+                  <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                    <div 
+                      className={`h-full transition-all duration-500 ${isDone ? 'bg-emerald-500' : 'bg-indigo-600'}`}
+                      style={{ width: `${percent}%` }}
+                    />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {allDone && (
+            <div className="text-center">
+              <button
+                onClick={onCompleteAll}
+                className="py-4 px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-base rounded-2xl shadow-lg shadow-emerald-200 transition-all animate-bounce"
+              >
+                🎉 View Final Happiness Index Report →
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function SwipeCardEngine({ category, card, nextCard, index, total, onSwipe, facultyName }) {
+      const [dragX, setDragX] = useState(0);
+      const [isAnimatingOut, setIsAnimatingOut] = useState(null); // 'left' | 'right' | null
+      const [isDragging, setIsDragging] = useState(false);
+      const [isSnappingBack, setIsSnappingBack] = useState(false);
+      const startXRef = useRef(0);
+      const isTransitioningRef = useRef(false);
+
+      const triggerSwipe = (direction) => {
+        if (isTransitioningRef.current || isAnimatingOut || !card) return;
+        isTransitioningRef.current = true;
+
+        if (window.confetti && direction === 'positive') {
+          try {
+            window.confetti({ particleCount: 25, spread: 60, origin: { x: 0.8, y: 0.6 } });
+          } catch(e) {}
+        }
+
+        const resp = direction === 'positive' ? 'positive' : 'negative';
+        setIsAnimatingOut(direction === 'positive' ? 'right' : 'left');
+
+        setTimeout(() => {
+          onSwipe(resp, card);
+        }, 280);
+      };
+
+      // Reset on card change
+      useEffect(() => {
+        setDragX(0);
+        setIsAnimatingOut(null);
+        setIsSnappingBack(false);
+        isTransitioningRef.current = false;
+        setIsDragging(false);
+      }, [card?.id]);
+
+      // Keyboard arrow listener
+      useEffect(() => {
+        const handleKeyDown = (e) => {
+          if (isTransitioningRef.current || isAnimatingOut) return;
+          if (e.key === 'ArrowLeft') triggerSwipe('negative');
+          if (e.key === 'ArrowRight') triggerSwipe('positive');
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+      }, [card?.id, isAnimatingOut]);
+
+      // Drag Handlers
+      const handleTouchStart = (e) => {
+        if (isTransitioningRef.current || isAnimatingOut) return;
+        setIsDragging(true);
+        setIsSnappingBack(false);
+        startXRef.current = e.touches[0].clientX;
+      };
+
+      const handleTouchMove = (e) => {
+        if (!isDragging) return;
+        const currentX = e.touches[0].clientX;
+        setDragX(currentX - startXRef.current);
+      };
+
+      const handleTouchEnd = () => {
+        if (!isDragging) return;
+        setIsDragging(false);
+        if (dragX > 80) {
+          triggerSwipe('positive');
+        } else if (dragX < -80) {
+          triggerSwipe('negative');
+        } else {
+          setIsSnappingBack(true);
+          setDragX(0);
+          setTimeout(() => setIsSnappingBack(false), 220);
+        }
+      };
+
+      const handleMouseDown = (e) => {
+        if (isTransitioningRef.current || isAnimatingOut) return;
+        setIsDragging(true);
+        setIsSnappingBack(false);
+        startXRef.current = e.clientX;
+      };
+
+      const handleMouseMove = (e) => {
+        if (!isDragging) return;
+        setDragX(e.clientX - startXRef.current);
+      };
+
+      const handleMouseUp = () => {
+        if (!isDragging) return;
+        setIsDragging(false);
+        if (dragX > 80) {
+          triggerSwipe('positive');
+        } else if (dragX < -80) {
+          triggerSwipe('negative');
+        } else {
+          setIsSnappingBack(true);
+          setDragX(0);
+          setTimeout(() => setIsSnappingBack(false), 220);
+        }
+      };
+
+      const rotation = dragX * 0.08;
+      const positiveOpacity = isAnimatingOut === 'right' ? 1 : Math.min(1, Math.max(0, dragX / 80));
+      const negativeOpacity = isAnimatingOut === 'left' ? 1 : Math.min(1, Math.max(0, -dragX / 80));
+
+      const cardTransform = isAnimatingOut
+        ? isAnimatingOut === 'right'
+          ? 'translateX(150vw) rotate(30deg)'
+          : 'translateX(-150vw) rotate(-30deg)'
+        : `translateX(${dragX}px) rotate(${rotation}deg)`;
+
+      const cardTransition = isAnimatingOut
+        ? 'transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.3s ease-out'
+        : isSnappingBack
+        ? 'transform 0.22s ease-out'
+        : 'none';
+
+      return (
+        <div 
+          className="max-w-md mx-auto px-4 py-6 select-none"
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+        >
+          {/* Top Category / Faculty Header */}
+          <div className="flex items-center justify-between text-xs font-black uppercase text-slate-500 mb-3 px-1">
+            <span className="text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">
+              {facultyName ? `Faculty: ${facultyName}` : category.name}
+            </span>
+            <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg font-bold">
+              Card {index + 1} of {total}
+            </span>
+          </div>
+
+          {/* Stack Container */}
+          <div className="relative w-full min-h-[390px] mb-6">
+            
+            {/* 2nd Background Card (Preview underneath) */}
+            {nextCard && (
+              <div 
+                className="absolute inset-0 bg-white rounded-3xl p-7 sm:p-9 tinder-card-shadow border border-slate-200/90 flex flex-col justify-between overflow-hidden pointer-events-none"
+                style={{
+                  transform: isAnimatingOut ? 'scale(1)' : 'scale(0.95) translateY(10px)',
+                  opacity: isAnimatingOut ? 1 : 0.85,
+                  transition: isAnimatingOut ? 'transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.3s' : 'none'
+                }}
+              >
+                <div className="mt-6 text-center">
+                  <span className="text-3xl mb-3 block">{category.icon || '📌'}</span>
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-3">
+                    {nextCard.cardText}
+                  </h2>
+                  <p className="text-sm text-slate-500 font-medium leading-relaxed max-w-sm mx-auto">
+                    {nextCard.description}
+                  </p>
+                </div>
+                <div className="text-center pt-6 border-t border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Swipe Left or Right • or Use Buttons Below
+                </div>
+              </div>
+            )}
+
+            {/* Active Draggable Card */}
+            <div 
+              key={card.id}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onMouseDown={handleMouseDown}
+              style={{
+                transform: cardTransform,
+                transition: cardTransition,
+                cursor: isDragging ? 'grabbing' : 'grab',
+                opacity: isAnimatingOut ? 0 : 1,
+                willChange: 'transform, opacity'
+              }}
+              className="absolute inset-0 bg-white rounded-3xl p-7 sm:p-9 tinder-card-shadow border border-slate-200/90 flex flex-col justify-between overflow-hidden select-none z-10"
+            >
+              {/* Dynamic Stamp Badges */}
+              <div 
+                style={{ opacity: positiveOpacity }}
+                className="absolute top-6 left-6 swipe-badge-positive px-3.5 py-1.5 rounded-xl font-black text-xs tracking-wider uppercase rotate-[-12deg] pointer-events-none transition-opacity"
+              >
+                ✓ I LIKE IT
+              </div>
+              <div 
+                style={{ opacity: negativeOpacity }}
+                className="absolute top-6 right-6 swipe-badge-negative px-3.5 py-1.5 rounded-xl font-black text-xs tracking-wider uppercase rotate-[12deg] pointer-events-none transition-opacity"
+              >
+                ✕ I DON'T LIKE IT
+              </div>
+
+              {/* Card Content */}
+              <div className="mt-6 text-center">
+                <span className="text-3xl mb-3 block">{category.icon || '📌'}</span>
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-3">
+                  {card.cardText}
+                </h2>
+                <p className="text-sm text-slate-500 font-medium leading-relaxed max-w-sm mx-auto">
+                  {card.description}
+                </p>
+              </div>
+
+              {/* Bottom gesture helper */}
+              <div className="text-center pt-6 border-t border-slate-100">
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Swipe Left or Right • or Use Buttons Below
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => triggerSwipe('negative')}
+              disabled={isAnimatingOut}
+              className="py-4 px-4 bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 font-black text-xs sm:text-sm rounded-2xl border border-rose-200 transition-all flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50"
+            >
+              <span>←</span> I DON'T LIKE IT
+            </button>
+            <button
+              onClick={() => triggerSwipe('positive')}
+              disabled={isAnimatingOut}
+              className="py-4 px-4 bg-emerald-50 hover:bg-emerald-100 active:scale-95 text-emerald-700 font-black text-xs sm:text-sm rounded-2xl border border-emerald-200 transition-all flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50"
+            >
+              I LIKE IT <span>→</span>
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    function FacultySelectionFlow({ session, facultyList, responses, onStartFacultySwiping, onDoneFaculty }) {
+      const [selectedFacultyId, setSelectedFacultyId] = useState(null);
+
+      const getFacultyDisplayName = (faculty) => {
+        if (!faculty) return '';
+        const name = faculty.facultyName || faculty.faculty_name || '';
+        if (/suresh/i.test(name)) return 'Jeni Priya';
+        if (/ananya/i.test(name)) return 'Karnalingesh';
+        if (/aishwarya/i.test(name)) return 'Jeni Priya';
+        if (/rajesh/i.test(name)) return 'Karnalingesh';
+        if (/meenakshi/i.test(name)) return 'Jeni Priya';
+        if (/vikram/i.test(name)) return 'Karnalingesh';
+        if (/priya deshmukh/i.test(name)) return 'Jeni Priya';
+        if (/siddharth/i.test(name)) return 'Karnalingesh';
+        return name;
+      };
+
+      const applicableFaculty = facultyList.map((f, idx) => ({
+        ...f,
+        facultyName: getFacultyDisplayName(f) || (idx === 0 ? 'Jeni Priya' : 'Karnalingesh')
+      })).filter(
+        f => f.programme === session.programme && f.year === session.year
+      );
+
+      const getFacultyProgress = (facultyId) => {
+        const facResponses = responses.filter(r => r.facultyId === facultyId);
+        const isDone = facResponses.length >= OFFICIAL_FACULTY_CARDS.length && OFFICIAL_FACULTY_CARDS.length > 0;
+        return { count: facResponses.length, isDone };
+      };
+
+      const completedCount = applicableFaculty.filter(f => getFacultyProgress(f.id).isDone).length;
+      const allFacultyDone = applicableFaculty.length > 0 && completedCount >= applicableFaculty.length;
+
+      const handleContinue = () => {
+        if (!selectedFacultyId) return;
+        const fac = applicableFaculty.find(f => f.id === selectedFacultyId);
+        if (fac && !getFacultyProgress(fac.id).isDone) {
+          onStartFacultySwiping(fac);
+        }
+      };
+
+      return (
+        <div className="max-w-2xl mx-auto px-4 py-8 animate-fadeIn">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <span className="text-xs font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3.5 py-1.5 rounded-full border border-indigo-100">
+              Faculty Feedback
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 mt-3 tracking-tight">
+              {allFacultyDone ? 'All Faculty Evaluated!' : 'Select Faculty Member'}
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1.5 max-w-md mx-auto">
+              {allFacultyDone
+                ? 'You have completed all faculty evaluations for your cohort. Click continue to proceed.'
+                : 'Select a faculty member below to give anonymous feedback across 6 key criteria.'}
+            </p>
+
+            {/* Progress Badge */}
+            <div className="inline-flex items-center gap-2 mt-4 px-3.5 py-1.5 rounded-xl bg-slate-100 border border-slate-200/80 text-xs font-extrabold text-slate-700">
+              <span>👨‍🏫</span>
+              <span>{completedCount} of {applicableFaculty.length} Faculty Completed</span>
+              <span className="text-slate-400">•</span>
+              <span className={allFacultyDone ? 'text-emerald-600' : 'text-indigo-600'}>
+                {Math.round((completedCount / (applicableFaculty.length || 1)) * 100)}%
+              </span>
+            </div>
+          </div>
+
+          {/* All Faculty Completed Banner */}
+          {allFacultyDone && (
+            <div className="mb-6 bg-emerald-50 border border-emerald-300 rounded-3xl p-6 text-center shadow-sm animate-scaleUp">
+              <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-3 font-black">
+                ✓
+              </div>
+              <h3 className="text-lg font-black text-emerald-950 mb-1">
+                All Faculty Evaluations Completed!
+              </h3>
+              <p className="text-xs text-emerald-700 font-medium">
+                Thank you for reviewing all faculty mentors. Click continue to move to the next section.
+              </p>
+            </div>
+          )}
+
+          {/* Faculty Cards Grid */}
+          <div className="grid grid-cols-1 gap-3.5 mb-8">
+            {applicableFaculty.map((fac) => {
+              const { count, isDone } = getFacultyProgress(fac.id);
+              const isSelected = selectedFacultyId === fac.id && !isDone;
+
+              return (
+                <div
+                  key={fac.id}
+                  onClick={() => {
+                    if (!isDone) {
+                      setSelectedFacultyId(fac.id);
+                    }
+                  }}
+                  className={`p-5 rounded-3xl border transition-all select-none flex items-center justify-between ${
+                    isDone
+                      ? 'bg-emerald-50/60 border-emerald-200/90 opacity-90 cursor-not-allowed'
+                      : isSelected
+                      ? 'bg-indigo-50/90 border-2 border-indigo-600 shadow-md shadow-indigo-100 ring-4 ring-indigo-500/15 cursor-pointer'
+                      : 'bg-white border-slate-200 hover:border-indigo-400 hover:shadow-md cursor-pointer group'
+                  }`}
+                >
+                  <div>
+                    <h3
+                      className={`text-base font-black transition-colors ${
+                        isDone
+                          ? 'text-slate-800'
+                          : isSelected
+                          ? 'text-indigo-950'
+                          : 'text-slate-900 group-hover:text-indigo-600'
+                      }`}
+                    >
+                      {fac.facultyName}
+                    </h3>
+                  </div>
+
+                  <div>
+                    {isDone ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-black text-emerald-800 bg-emerald-100 px-3.5 py-1.5 rounded-full border border-emerald-200">
+                        <span>✓</span> Completed
+                      </span>
+                    ) : isSelected ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black text-indigo-700 uppercase tracking-wider hidden sm:inline">
+                          Selected
+                        </span>
+                        <div className="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-md">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="w-6 h-6 rounded-full border-2 border-slate-300 group-hover:border-indigo-400 transition-colors" />
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="space-y-3 pt-2">
+            {allFacultyDone ? (
+              <button
+                onClick={onDoneFaculty}
+                className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-emerald-200 transition-all flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
+              >
+                Continue to Next Category →
+              </button>
+            ) : (
+              <button
+                onClick={handleContinue}
+                disabled={!selectedFacultyId}
+                className={`w-full py-4 rounded-2xl font-extrabold text-sm transition-all flex items-center justify-center gap-2 ${
+                  selectedFacultyId
+                    ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 active:scale-98 cursor-pointer'
+                    : 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300/60'
+                }`}
+              >
+                {selectedFacultyId ? 'Continue to Evaluation →' : 'Select a Faculty Member to Continue'}
+              </button>
+            )}
+
+            <div className="text-center pt-2">
+              <button
+                onClick={onDoneFaculty}
+                className="text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors"
+              >
+                ← Return to Categories Menu
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function CategoryCompletionModal({ categoryName, onNextCategory, onViewCategories }) {
+      return (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center border border-slate-200 shadow-2xl animate-scaleUp">
+            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-2xl mx-auto mb-4 font-black animate-bounce">
+              ✓
+            </div>
+            <h3 className="text-xl font-black text-slate-900 mb-1">
+              Category Completed!
+            </h3>
+            <p className="text-xs text-slate-500 font-medium mb-6">
+              You’ve evaluated all cards for <strong className="text-slate-800 font-bold">{categoryName}</strong>.
+            </p>
+
+            <div className="space-y-2.5">
+              <button
+                onClick={onNextCategory}
+                className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-2xl shadow-md transition-all"
+              >
+                Proceed to Next Category →
+              </button>
+              <button
+                onClick={onViewCategories}
+                className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-2xl transition-all"
+              >
+                Category Menu
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function FinalScreen({ session, responses, onReset }) {
+      useEffect(() => {
+        if (window.confetti) {
+          window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        }
+      }, []);
+
+      const totalResponses = responses.length;
+      const positiveCount = responses.filter(r => r.response === 'positive').length;
+      const happinessIndexScore = totalResponses > 0 ? Math.round((positiveCount / totalResponses) * 100) : 0;
+
+      return (
+        <div className="max-w-2xl mx-auto px-4 py-10 animate-fadeIn">
+          <div className="bg-white rounded-3xl p-8 sm:p-10 border border-slate-200 shadow-xl text-center mb-8">
+            <div className="inline-block p-4 bg-emerald-50 text-emerald-600 rounded-3xl text-3xl mb-4">
+              🎉
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight mb-2">
+              Feedback Submitted!
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium max-w-md mx-auto mb-8">
+              Thank you for sharing your authentic feedback. Your inputs directly shape student experience and academic initiatives.
+            </p>
+
+            {/* Score Ring / Card */}
+            <div className="bg-gradient-to-br from-indigo-50 to-indigo-100/50 border border-indigo-200/80 rounded-3xl p-6 sm:p-8 max-w-sm mx-auto mb-8">
+              <div className="text-xs font-black text-indigo-700 uppercase tracking-wider mb-2">
+                Your Cohort Experience Score
+              </div>
+              <div className="text-5xl sm:text-6xl font-black text-indigo-900">
+                {happinessIndexScore}<span className="text-2xl text-indigo-600 font-bold">%</span>
+              </div>
+              <div className="text-xs font-bold text-indigo-600 mt-2">
+                {positiveCount} Valued Items out of {totalResponses} total evaluations
+              </div>
+            </div>
+
+            {/* Category breakdown */}
+            <div className="text-left space-y-3 mb-8">
+              <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider">Evaluation Breakdown</h4>
+              {ORDERED_CATEGORIES.map(cat => {
+                const catResps = responses.filter(r => r.categoryId === cat.id);
+                const pos = catResps.filter(r => r.response === 'positive').length;
+                const pct = catResps.length > 0 ? Math.round((pos / catResps.length) * 100) : 0;
+
+                return (
+                  <div key={cat.id} className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span>{cat.icon}</span>
+                      <span className="text-xs font-black text-slate-800">{cat.name}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-slate-500 font-bold">{pos}/{catResps.length}</span>
+                      <span className="text-xs font-black text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-lg">{pct}%</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={onReset}
+              className="py-3.5 px-8 bg-slate-900 hover:bg-black text-white font-black text-xs rounded-2xl transition-all"
+            >
+              Start Another Anonymous Session
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // ====================================================================
+    // MAIN APPLICATION CONTAINER
+    // ====================================================================
+    function App() {
+      const isResetRequested = () => {
+        try {
+          return window.location.hash.includes('reset') || window.location.search.includes('reset');
+        } catch { return false; }
+      };
+
+      const [session, setSession] = useState(() => {
+        if (isResetRequested()) {
+          try {
+            localStorage.removeItem('hi_anon_session');
+            localStorage.removeItem('hi_anon_responses');
+          } catch {}
+          return null;
+        }
+        try {
+          const saved = localStorage.getItem('hi_anon_session');
+          return saved ? JSON.parse(saved) : null;
+        } catch { return null; }
+      });
+
+      const [responses, setResponses] = useState(() => {
+        if (isResetRequested()) return [];
+        try {
+          const saved = localStorage.getItem('hi_anon_responses');
+          return saved ? JSON.parse(saved) : [];
+        } catch { return []; }
+      });
+
+      const [currentView, setCurrentView] = useState(() => (session && !isResetRequested()) ? 'categories' : 'onboarding');
+      const [onboardingProgramme, setOnboardingProgramme] = useState('');
+      const [selectedCategory, setSelectedCategory] = useState(null);
+      const [cardIndex, setCardIndex] = useState(0);
+      const [activeFaculty, setActiveFaculty] = useState(null);
+      const [showCompletionModal, setShowCompletionModal] = useState(false);
+
+      const handleResetSession = () => {
+        try {
+          localStorage.removeItem('hi_anon_session');
+          localStorage.removeItem('hi_anon_responses');
+        } catch {}
+        setSession(null);
+        setResponses([]);
+        setSelectedCategory(null);
+        setCardIndex(0);
+        setActiveFaculty(null);
+        setShowCompletionModal(false);
+        setOnboardingProgramme('');
+        setCurrentView('onboarding');
+      };
+
+      // Save to localStorage
+      useEffect(() => {
+        if (session) {
+          localStorage.setItem('hi_anon_session', JSON.stringify(session));
+        } else {
+          localStorage.removeItem('hi_anon_session');
+        }
+      }, [session]);
+
+      useEffect(() => {
+        localStorage.setItem('hi_anon_responses', JSON.stringify(responses));
+      }, [responses]);
+
+      // Category totals
+      const categoriesWithTotals = useMemo(() => {
+        if (!session) return ORDERED_CATEGORIES.map(c => ({ ...c, totalCards: 0 }));
+
+        const pedCards = OFFICIAL_FEEDBACK_CARDS.pedagogy[session.learningTrack] || OFFICIAL_FEEDBACK_CARDS.pedagogy['Project-Based Learning'];
+        const applicableFac = INITIAL_FACULTY_LIST.filter(
+          f => f.programme === session.programme && f.year === session.year
+        );
+
+        return ORDERED_CATEGORIES.map(c => {
+          let count = 0;
+          if (c.id === 'institution') count = OFFICIAL_FEEDBACK_CARDS.institution.length;
+          if (c.id === 'pedagogy') count = pedCards.length;
+          if (c.id === 'career') count = OFFICIAL_FEEDBACK_CARDS.career.length;
+          if (c.id === 'campus_life') count = OFFICIAL_FEEDBACK_CARDS.campus_life.length;
+          if (c.id === 'faculty') count = applicableFac.length * OFFICIAL_FACULTY_CARDS.length;
+          return { ...c, totalCards: count };
+        });
+      }, [session]);
+
+      const totalRequiredCards = useMemo(() => {
+        return categoriesWithTotals.reduce((acc, c) => acc + c.totalCards, 0);
+      }, [categoriesWithTotals]);
+
+      const handleStartSession = (data) => {
+        const sess = { id: 'sess_' + Date.now(), ...data };
+        setSession(sess);
+        setResponses([]);
+        setCurrentView('categories');
+      };
+
+      const getCardsForCurrentCategory = () => {
+        if (!selectedCategory) return [];
+        if (selectedCategory === 'faculty') return OFFICIAL_FACULTY_CARDS;
+        if (selectedCategory === 'pedagogy') {
+          const tr = session?.learningTrack || 'Project-Based Learning';
+          return OFFICIAL_FEEDBACK_CARDS.pedagogy[tr] || OFFICIAL_FEEDBACK_CARDS.pedagogy['Project-Based Learning'];
+        }
+        return OFFICIAL_FEEDBACK_CARDS[selectedCategory] || [];
+      };
+
+      const handleSelectCategory = (catId) => {
+        setSelectedCategory(catId);
+        setCardIndex(0);
+        if (catId === 'faculty') {
+          setCurrentView('faculty_list');
+        } else {
+          setCurrentView('swiping');
+        }
+      };
+
+      const handleStartFacultySwiping = (fac) => {
+        setActiveFaculty(fac);
+        setSelectedCategory('faculty');
+        setCardIndex(0);
+        setCurrentView('swiping');
+      };
+
+      const handleSwipe = (respType, card) => {
+        const newResp = {
+          sessionId: session.id,
+          categoryId: selectedCategory,
+          cardId: card.id,
+          cardText: card.cardText,
+          facultyId: activeFaculty ? activeFaculty.id : null,
+          response: respType,
+          score: respType === 'positive' ? 1 : 0,
+          timestamp: new Date().toISOString()
+        };
+
+        const updated = [...responses, newResp];
+        setResponses(updated);
+
+        const currentCards = getCardsForCurrentCategory();
+        if (cardIndex + 1 < currentCards.length) {
+          setCardIndex(prev => prev + 1);
+        } else {
+          // Category / faculty completed
+          if (selectedCategory === 'faculty') {
+            setActiveFaculty(null);
+            setCurrentView('faculty_list');
+          } else {
+            setShowCompletionModal(true);
+          }
+        }
+      };
+
+      const handleNextCategory = () => {
+        setShowCompletionModal(false);
+        const currentIndex = ORDERED_CATEGORIES.findIndex(c => c.id === selectedCategory);
+        if (currentIndex < ORDERED_CATEGORIES.length - 1) {
+          const nextCat = ORDERED_CATEGORIES[currentIndex + 1];
+          handleSelectCategory(nextCat.id);
+        } else {
+          setCurrentView('categories');
+        }
+      };
+
+      const handleReset = () => {
+        localStorage.removeItem('hi_anon_session');
+        localStorage.removeItem('hi_anon_responses');
+        setSession(null);
+        setOnboardingProgramme('');
+        setResponses([]);
+        setSelectedCategory(null);
+        setActiveFaculty(null);
+        setCurrentView('onboarding');
+      };
+
+      const currentCategoryObj = ORDERED_CATEGORIES.find(c => c.id === selectedCategory) || ORDERED_CATEGORIES[0];
+      const activeCardsList = getCardsForCurrentCategory();
+      const currentCard = activeCardsList[cardIndex];
+
+      return (
+        <div className="min-h-screen flex flex-col bg-slate-50">
+          <LogoHeader
+            session={session || (onboardingProgramme ? { programme: onboardingProgramme } : null)}
+            progress={responses.length}
+            total={totalRequiredCards}
+            onResetSession={handleResetSession}
+          />
+
+          <main className="flex-1 pb-12">
+            {currentView === 'onboarding' && (
+              <OnboardingModal 
+                onStart={handleStartSession} 
+                onProgrammeChange={setOnboardingProgramme}
+              />
+            )}
+
+            {currentView === 'categories' && (
+              <CategorySelection
+                categories={categoriesWithTotals}
+                responses={responses}
+                totalRequiredCards={totalRequiredCards}
+                onSelectCategory={handleSelectCategory}
+                onCompleteAll={() => setCurrentView('final')}
+                onResetSession={handleResetSession}
+              />
+            )}
+
+            {currentView === 'faculty_list' && (
+              <FacultySelectionFlow
+                session={session}
+                facultyList={INITIAL_FACULTY_LIST}
+                responses={responses}
+                onStartFacultySwiping={handleStartFacultySwiping}
+                onDoneFaculty={() => {
+                  const applicableFac = INITIAL_FACULTY_LIST.filter(
+                    f => f.programme === session?.programme && f.year === session?.year
+                  );
+                  const allDone = applicableFac.length > 0 && applicableFac.every(
+                    f => responses.filter(r => r.facultyId === f.id).length >= OFFICIAL_FACULTY_CARDS.length
+                  );
+                  if (allDone) {
+                    setShowCompletionModal(true);
+                  } else {
+                    setCurrentView('categories');
+                  }
+                }}
+              />
+            )}
+
+            {currentView === 'swiping' && currentCard && (
+              <SwipeCardEngine
+                key={currentCard.id}
+                category={currentCategoryObj}
+                card={currentCard}
+                nextCard={activeCardsList[cardIndex + 1]}
+                index={cardIndex}
+                total={activeCardsList.length}
+                facultyName={activeFaculty ? activeFaculty.facultyName : null}
+                onSwipe={handleSwipe}
+              />
+            )}
+
+            {currentView === 'final' && (
+              <FinalScreen
+                session={session}
+                responses={responses}
+                onReset={handleReset}
+              />
+            )}
+
+            {showCompletionModal && (
+              <CategoryCompletionModal
+                categoryName={currentCategoryObj.name}
+                onNextCategory={handleNextCategory}
+                onViewCategories={() => {
+                  setShowCompletionModal(false);
+                  setCurrentView('categories');
+                }}
+              />
+            )}
+          </main>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
