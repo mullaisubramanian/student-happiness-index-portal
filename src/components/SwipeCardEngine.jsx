@@ -295,7 +295,7 @@ const CATEGORY_HEART_COLORS = {
       ))}
 
       {/* Top Category Controls Row */}
-      <div className="w-full flex items-center justify-start mb-4">
+      <div className="w-full flex items-center justify-between mb-4">
         <button
           onClick={onBackToCategories}
           className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-purple-700 bg-white/90 border border-slate-200/80 px-3.5 py-1.5 rounded-xl shadow-sm transition-all hover:bg-purple-50"
@@ -305,6 +305,14 @@ const CATEGORY_HEART_COLORS = {
           </svg>
           <span>Categories</span>
         </button>
+        {trackTitle && (
+          <span className="text-xs font-bold text-slate-700 bg-white/90 border border-slate-200/80 px-3 py-1.5 rounded-xl shadow-sm">
+            {trackTitle}
+          </span>
+        )}
+        <span className="text-xs font-bold text-slate-500 bg-white/90 border border-slate-200/80 px-3 py-1.5 rounded-xl shadow-sm">
+          {currentFormatted} / {totalFormatted}
+        </span>
       </div>
 
       {/* Card Stack Area */}

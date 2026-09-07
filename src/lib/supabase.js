@@ -118,6 +118,25 @@ export async function fetchCategoriesFromSupabase() {
   return data || [];
 }
 
+export const OFFICIAL_PEDAGOGY_CARDS = {
+  'Project-Based Learning': [
+    { cardText: 'Case Study Learning', description: 'Analyzing Harvard & real corporate case studies to build strategic thinking.' },
+    { cardText: 'Business Simulation', description: 'Engaging in gamified business decision-making and market simulations.' },
+    { cardText: 'Hands-on Activities', description: 'Practical workshops, prototyping sessions, and live business experiments.' },
+    { cardText: 'Industry-Based Assignments', description: 'Assignments directly linked with current corporate models and market trends.' },
+    { cardText: 'Real-World Problem Solving', description: 'Tackling authentic organizational challenges using analytical frameworks.' },
+    { cardText: 'Presentation & Discussion', description: 'Presenting solutions to peers and faculty to refine communication skills.' },
+  ],
+  'Training-Based Learning': [
+    { cardText: 'Teaching Quality', description: 'Clear, structured lectures delivered with deep domain expertise.' },
+    { cardText: 'Doubt Clarity', description: 'Prompt and clear resolution of concepts during and after lectures.' },
+    { cardText: 'Practical Examples', description: 'Illustrating complex theoretical topics using clear corporate examples.' },
+    { cardText: 'Test & Assessment', description: 'Fair, constructive evaluations that test actual subject mastery.' },
+    { cardText: 'Interactive Classes', description: 'Interactive sessions encouraging active participation and discussion.' },
+    { cardText: 'Classroom Engagement', description: 'Active student participation, vibrant peer dialogue, and engaging learning atmosphere.' },
+  ],
+};
+
 export const OFFICIAL_CATEGORY_CARDS = {
   institution: [
     { cardText: 'Campus Facilities', description: 'Modern infrastructure, clean classrooms, and comfortable study areas.' },
@@ -128,17 +147,8 @@ export const OFFICIAL_CATEGORY_CARDS = {
     { cardText: 'Research Resources', description: 'Support for academic papers, case studies, and research publications.' },
   ],
   pedagogy: [
-    { cardText: 'Case Study Learning', description: 'Analyzing Harvard & real corporate case studies to build strategic thinking.' },
-    { cardText: 'Business Simulation', description: 'Engaging in gamified business decision-making and market simulations.' },
-    { cardText: 'Hands-on Activities', description: 'Practical workshops, prototyping sessions, and live business experiments.' },
-    { cardText: 'Industry-Based Assignments', description: 'Assignments directly linked with current corporate models and market trends.' },
-    { cardText: 'Real-World Problem Solving', description: 'Tackling authentic organizational challenges using analytical frameworks.' },
-    { cardText: 'Presentation & Discussion', description: 'Presenting solutions to peers and faculty to refine communication skills.' },
-    { cardText: 'Teaching Quality', description: 'Clear, structured lectures delivered with deep domain expertise.' },
-    { cardText: 'Doubt Clarity', description: 'Prompt and clear resolution of concepts during and after lectures.' },
-    { cardText: 'Practical Examples', description: 'Illustrating complex theoretical topics using clear corporate examples.' },
-    { cardText: 'Test & Assessment', description: 'Fair, constructive evaluations that test actual subject mastery.' },
-    { cardText: 'Interactive Classes', description: 'Interactive sessions encouraging active participation and discussion.' },
+    ...OFFICIAL_PEDAGOGY_CARDS['Project-Based Learning'],
+    ...OFFICIAL_PEDAGOGY_CARDS['Training-Based Learning'],
   ],
   career: [
     { cardText: 'Live Industry Projects', description: 'Working directly on live consulting or operational briefs for companies.' },
@@ -192,19 +202,39 @@ export async function fetchFeedbackCardsFromSupabase(categoryId, track) {
   const resolvedCards = [];
 
   for (const catId of targetCategories) {
-    const officialList = OFFICIAL_CATEGORY_CARDS[catId] || [];
+    let officialList = OFFICIAL_CATEGORY_CARDS[catId] || [];
+    if (catId === 'pedagogy' && track && OFFICIAL_PEDAGOGY_CARDS[track]) {
+      officialList = OFFICIAL_PEDAGOGY_CARDS[track];
+    }
     const catDbCards = dbCards.filter(c => c.category_id === catId);
+    const usedDbCardIds = new Set();
 
     officialList.forEach((officialCard, idx) => {
-      // Find matching DB card by text, or fallback to matching by position
-      const match = catDbCards.find(
-        c => c.card_text && c.card_text.toLowerCase().trim() === officialCard.cardText.toLowerCase().trim()
-      ) || catDbCards[idx];
+      // 1. Direct text match or known aliases among unused DB cards
+      let match = catDbCards.find(c => {
+        if (usedDbCardIds.has(c.id) || !c.card_text) return false;
+        const dbText = c.card_text.toLowerCase().trim();
+        const offText = officialCard.cardText.toLowerCase().trim();
+        return (
+          dbText === offText ||
+          (offText === 'interactive classes' && dbText === 'classroom engagement') ||
+          (offText === 'classroom engagement' && dbText === 'interactive classes')
+        );
+      });
+
+      // 2. Fallback to any unused DB card in this category so IDs are never duplicated
+      if (!match) {
+        match = catDbCards.find(c => !usedDbCardIds.has(c.id));
+      }
+
+      if (match) {
+        usedDbCardIds.add(match.id);
+      }
 
       resolvedCards.push({
         id: match?.id || `${catId}-${idx + 1}`,
         categoryId: catId,
-        track: 'general',
+        track: catId === 'pedagogy' && track ? track : 'general',
         cardText: officialCard.cardText,
         description: officialCard.description,
         displayOrder: idx + 1,
@@ -262,12 +292,21 @@ export async function fetchFacultyCardsFromSupabase() {
   }
 
   const dbCards = data || [];
+  const usedFacultyCardIds = new Set();
 
-  // Return the exact 6 official faculty experience cards, resolving DB UUIDs
+  // Return the exact 6 official faculty experience cards, resolving unique DB UUIDs
   return OFFICIAL_FACULTY_EXPERIENCE_CARDS.map((fc, idx) => {
-    const match = dbCards.find(
-      c => c.card_text && c.card_text.toLowerCase().trim() === fc.cardText.toLowerCase().trim()
-    ) || dbCards[idx];
+    let match = dbCards.find(
+      c => !usedFacultyCardIds.has(c.id) && c.card_text && c.card_text.toLowerCase().trim() === fc.cardText.toLowerCase().trim()
+    );
+
+    if (!match) {
+      match = dbCards.find(c => !usedFacultyCardIds.has(c.id));
+    }
+
+    if (match) {
+      usedFacultyCardIds.add(match.id);
+    }
 
     return {
       id: match?.id || `fac-card-${idx + 1}`,

@@ -19,7 +19,8 @@ import {
   fetchFacultyFromSupabase,
   fetchFacultyCardsFromSupabase,
   saveResponseToSupabase,
-  completeSessionInSupabase
+  completeSessionInSupabase,
+  OFFICIAL_PEDAGOGY_CARDS
 } from './lib/supabase';
 
 // Strict 5-Category Sequential Order
@@ -70,6 +71,7 @@ export default function App() {
     allCards.forEach((c) => {
       totals[c.categoryId] = (totals[c.categoryId] || 0) + 1;
     });
+    totals['pedagogy'] = 6; // 6 cards per track
 
     // Faculty total is faculty count * criteria count
     const applicableFaculty = facList.filter(
@@ -149,6 +151,42 @@ export default function App() {
 
     if (catId === 'faculty') {
       setCurrentView('faculty_swiping');
+    } else if (catId === 'pedagogy') {
+      setIsSaving(true);
+      try {
+        const studentTrack = session?.learningTrack === 'Training-Based Learning'
+          ? 'Training-Based Learning'
+          : 'Project-Based Learning';
+
+        // Filter cards strictly matching the student's selected learningTrack from Question 4
+        let cards = (allFeedbackCards || []).filter(
+          (c) => c.categoryId === 'pedagogy' && (c.track === studentTrack || !c.track || c.track === 'general')
+        );
+
+        if (!cards.length) {
+          cards = await fetchFeedbackCardsFromSupabase('pedagogy', studentTrack);
+        }
+
+        if (!cards.length) {
+          const fallback = OFFICIAL_PEDAGOGY_CARDS[studentTrack] || [];
+          cards = fallback.map((c, i) => ({
+            id: `ped-${studentTrack.startsWith('Train') ? 'train' : 'proj'}-${i + 1}`,
+            categoryId: 'pedagogy',
+            track: studentTrack,
+            cardText: c.cardText,
+            description: c.description,
+            displayOrder: i + 1,
+          }));
+        }
+
+        setActiveCategoryCards(cards);
+        categoryCardTotalsRef.current['pedagogy'] = cards.length;
+        setCurrentView('swiping');
+      } catch (err) {
+        setSaveError('Unable to fetch pedagogy cards.');
+      } finally {
+        setIsSaving(false);
+      }
     } else {
       setIsSaving(true);
       try {
@@ -184,22 +222,24 @@ export default function App() {
         stats[cat.id] = { completed, total: totalFacultyCards, isComplete };
       } else {
         const persistedTotal = categoryCardTotalsRef.current[cat.id] || 0;
-        const resolvedTotal = (selectedCategory === cat.id && activeCategoryCards.length > 0)
-          ? activeCategoryCards.length
-          : persistedTotal;
+        const resolvedTotal = cat.id === 'pedagogy'
+          ? 6
+          : ((selectedCategory === cat.id && activeCategoryCards.length > 0)
+              ? activeCategoryCards.length
+              : persistedTotal);
 
         const catResponses = responses.filter((r) => r.categoryId === cat.id);
         const completed = resolvedTotal > 0
           ? Math.min(catResponses.length, resolvedTotal)
           : catResponses.length;
-        const isComplete = resolvedTotal > 0 && completed >= resolvedTotal;
+        const isComplete = (resolvedTotal > 0 && completed >= resolvedTotal) || (completedCategoryJustNow === cat.id);
 
         stats[cat.id] = { completed, total: resolvedTotal, isComplete };
       }
     });
 
     return stats;
-  }, [categories, responses, dynamicFacultyList, facultyCards, activeCategoryCards, selectedCategory, session]);
+  }, [categories, responses, dynamicFacultyList, facultyCards, activeCategoryCards, selectedCategory, session, completedCategoryJustNow]);
 
   // Overall totals across all 5 categories
   const overallTotals = useMemo(() => {
@@ -321,9 +361,12 @@ export default function App() {
   // ── FIX: Seamless Progression across all 5 categories in order ──
   const handleContinueAfterCompletion = () => {
     // Check if all 5 categories are complete
-    const allDone = ORDERED_CATEGORIES.every((catId) => categoryStats[catId]?.isComplete);
+    const allDone = ORDERED_CATEGORIES.every((catId) => {
+      return catId === completedCategoryJustNow || categoryStats[catId]?.isComplete;
+    });
+
     if (allDone) {
-      completeSessionInSupabase(session.id);
+      completeSessionInSupabase(session?.id);
       setCurrentView('final');
       return;
     }
@@ -334,22 +377,22 @@ export default function App() {
     if (currentIndex !== -1) {
       for (let i = currentIndex + 1; i < ORDERED_CATEGORIES.length; i++) {
         const nextId = ORDERED_CATEGORIES[i];
-        if (!categoryStats[nextId]?.isComplete) {
+        if (!categoryStats[nextId]?.isComplete && nextId !== completedCategoryJustNow) {
           nextCat = nextId;
           break;
         }
       }
     }
 
-    // Fallback to any uncompleted category
+    // Fallback to any uncompleted category (excluding the one just finished)
     if (!nextCat) {
-      nextCat = ORDERED_CATEGORIES.find((catId) => !categoryStats[catId]?.isComplete);
+      nextCat = ORDERED_CATEGORIES.find((catId) => !categoryStats[catId]?.isComplete && catId !== completedCategoryJustNow);
     }
 
     if (nextCat) {
       handleSelectCategory(nextCat);
     } else {
-      completeSessionInSupabase(session.id);
+      completeSessionInSupabase(session?.id);
       setCurrentView('final');
     }
   };
@@ -540,6 +583,8 @@ export default function App() {
             onBackToCategories={() => setCurrentView('categories')}
           />
         )}
+
+
 
         {/* 4. Moderated Faculty Selection Flow */}
         {currentView === 'faculty_swiping' && (

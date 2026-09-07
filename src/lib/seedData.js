@@ -40,6 +40,25 @@ export const OFFICIAL_CATEGORIES = [
   },
 ];
 
+export const OFFICIAL_PEDAGOGY_CARDS = {
+  'Project-Based Learning': [
+    { id: 'ped-proj-1', categoryId: 'pedagogy', track: 'Project-Based Learning', cardText: 'Case Study Learning', description: 'Analyzing Harvard & real corporate case studies to build strategic thinking.' },
+    { id: 'ped-proj-2', categoryId: 'pedagogy', track: 'Project-Based Learning', cardText: 'Business Simulation', description: 'Engaging in gamified business decision-making and market simulations.' },
+    { id: 'ped-proj-3', categoryId: 'pedagogy', track: 'Project-Based Learning', cardText: 'Hands-on Activities', description: 'Practical workshops, prototyping sessions, and live business experiments.' },
+    { id: 'ped-proj-4', categoryId: 'pedagogy', track: 'Project-Based Learning', cardText: 'Industry-Based Assignments', description: 'Assignments directly linked with current corporate models and market trends.' },
+    { id: 'ped-proj-5', categoryId: 'pedagogy', track: 'Project-Based Learning', cardText: 'Real-World Problem Solving', description: 'Tackling authentic organizational challenges using analytical frameworks.' },
+    { id: 'ped-proj-6', categoryId: 'pedagogy', track: 'Project-Based Learning', cardText: 'Presentation & Discussion', description: 'Presenting solutions to peers and faculty to refine communication skills.' },
+  ],
+  'Training-Based Learning': [
+    { id: 'ped-train-1', categoryId: 'pedagogy', track: 'Training-Based Learning', cardText: 'Teaching Quality', description: 'Clear, structured lectures delivered with deep domain expertise.' },
+    { id: 'ped-train-2', categoryId: 'pedagogy', track: 'Training-Based Learning', cardText: 'Doubt Clarity', description: 'Prompt and clear resolution of concepts during and after lectures.' },
+    { id: 'ped-train-3', categoryId: 'pedagogy', track: 'Training-Based Learning', cardText: 'Practical Examples', description: 'Illustrating complex theoretical topics using clear corporate examples.' },
+    { id: 'ped-train-4', categoryId: 'pedagogy', track: 'Training-Based Learning', cardText: 'Test & Assessment', description: 'Fair, constructive evaluations that test actual subject mastery.' },
+    { id: 'ped-train-5', categoryId: 'pedagogy', track: 'Training-Based Learning', cardText: 'Interactive Classes', description: 'Interactive sessions encouraging active participation and discussion.' },
+    { id: 'ped-train-6', categoryId: 'pedagogy', track: 'Training-Based Learning', cardText: 'Classroom Engagement', description: 'Active student participation, vibrant peer dialogue, and engaging learning atmosphere.' },
+  ],
+};
+
 export const OFFICIAL_FEEDBACK_CARDS = {
   institution: [
     { id: 'inst-1', categoryId: 'institution', track: 'general', cardText: 'Campus Facilities', description: 'Modern infrastructure, clean classrooms, and comfortable study areas.' },
@@ -50,17 +69,8 @@ export const OFFICIAL_FEEDBACK_CARDS = {
     { id: 'inst-6', categoryId: 'institution', track: 'general', cardText: 'Research Resources', description: 'Support for academic papers, case studies, and research publications.' },
   ],
   pedagogy: [
-    { id: 'ped-2', categoryId: 'pedagogy', track: 'general', cardText: 'Case Study Learning', description: 'Analyzing Harvard & real corporate case studies to build strategic thinking.' },
-    { id: 'ped-3', categoryId: 'pedagogy', track: 'general', cardText: 'Business Simulation', description: 'Engaging in gamified business decision-making and market simulations.' },
-    { id: 'ped-4', categoryId: 'pedagogy', track: 'general', cardText: 'Hands-on Activities', description: 'Practical workshops, prototyping sessions, and live business experiments.' },
-    { id: 'ped-5', categoryId: 'pedagogy', track: 'general', cardText: 'Industry-Based Assignments', description: 'Assignments directly linked with current corporate models and market trends.' },
-    { id: 'ped-6', categoryId: 'pedagogy', track: 'general', cardText: 'Real-World Problem Solving', description: 'Tackling authentic organizational challenges using analytical frameworks.' },
-    { id: 'ped-7', categoryId: 'pedagogy', track: 'general', cardText: 'Presentation & Discussion', description: 'Presenting solutions to peers and faculty to refine communication skills.' },
-    { id: 'ped-9', categoryId: 'pedagogy', track: 'general', cardText: 'Teaching Quality', description: 'Clear, structured lectures delivered with deep domain expertise.' },
-    { id: 'ped-10', categoryId: 'pedagogy', track: 'general', cardText: 'Doubt Clarity', description: 'Prompt and clear resolution of concepts during and after lectures.' },
-    { id: 'ped-11', categoryId: 'pedagogy', track: 'general', cardText: 'Practical Examples', description: 'Illustrating complex theoretical topics using clear corporate examples.' },
-    { id: 'ped-12', categoryId: 'pedagogy', track: 'general', cardText: 'Test & Assessment', description: 'Fair, constructive evaluations that test actual subject mastery.' },
-    { id: 'ped-13', categoryId: 'pedagogy', track: 'general', cardText: 'Interactive Classes', description: 'Interactive sessions encouraging active participation and discussion.' },
+    ...OFFICIAL_PEDAGOGY_CARDS['Project-Based Learning'],
+    ...OFFICIAL_PEDAGOGY_CARDS['Training-Based Learning'],
   ],
   career: [
     { id: 'car-1', categoryId: 'career', track: 'general', cardText: 'Live Industry Projects', description: 'Working directly on live consulting or operational briefs for companies.' },
@@ -80,8 +90,8 @@ export const OFFICIAL_FEEDBACK_CARDS = {
   ],
 };
 
-OFFICIAL_FEEDBACK_CARDS.pedagogy['Project-Based Learning'] = OFFICIAL_FEEDBACK_CARDS.pedagogy;
-OFFICIAL_FEEDBACK_CARDS.pedagogy['Training-Based Learning'] = OFFICIAL_FEEDBACK_CARDS.pedagogy;
+OFFICIAL_FEEDBACK_CARDS.pedagogy['Project-Based Learning'] = OFFICIAL_PEDAGOGY_CARDS['Project-Based Learning'];
+OFFICIAL_FEEDBACK_CARDS.pedagogy['Training-Based Learning'] = OFFICIAL_PEDAGOGY_CARDS['Training-Based Learning'];
 
 export const OFFICIAL_FACULTY_CARDS = [
   { id: 'fac-card-1', cardText: 'Mentorship & Guidance', description: 'Personalized academic and career guidance provided by the faculty.' },
