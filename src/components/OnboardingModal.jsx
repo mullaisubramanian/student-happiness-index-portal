@@ -206,7 +206,7 @@ export default function OnboardingModal({ onStartSession, onProgrammeChange }) {
           <div className="animate-fadeIn">
             <div className="mb-6">
               <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-2">
-                Learning Track / Pedagogy
+                What-based learning?
               </h2>
               <p className="text-xs sm:text-sm text-slate-500 font-medium">
                 Select your designated pedagogy track.

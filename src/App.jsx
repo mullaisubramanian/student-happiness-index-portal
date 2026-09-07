@@ -154,23 +154,23 @@ export default function App() {
     } else if (catId === 'pedagogy') {
       setIsSaving(true);
       try {
-        const studentTrack = session?.learningTrack === 'Training-Based Learning'
+        const studentTrack = (session?.learningTrack && session.learningTrack.includes('Train'))
           ? 'Training-Based Learning'
           : 'Project-Based Learning';
 
         // Filter cards strictly matching the student's selected learningTrack from Question 4
         let cards = (allFeedbackCards || []).filter(
-          (c) => c.categoryId === 'pedagogy' && (c.track === studentTrack || !c.track || c.track === 'general')
+          (c) => c.categoryId === 'pedagogy' && (c.track === studentTrack || c.track === 'general')
         );
 
-        if (!cards.length) {
+        if (cards.length !== 6) {
           cards = await fetchFeedbackCardsFromSupabase('pedagogy', studentTrack);
         }
 
         if (!cards.length) {
           const fallback = OFFICIAL_PEDAGOGY_CARDS[studentTrack] || [];
           cards = fallback.map((c, i) => ({
-            id: `ped-${studentTrack.startsWith('Train') ? 'train' : 'proj'}-${i + 1}`,
+            id: c.dbId || c.id,
             categoryId: 'pedagogy',
             track: studentTrack,
             cardText: c.cardText,

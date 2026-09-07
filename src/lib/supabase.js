@@ -120,20 +120,20 @@ export async function fetchCategoriesFromSupabase() {
 
 export const OFFICIAL_PEDAGOGY_CARDS = {
   'Project-Based Learning': [
-    { cardText: 'Case Study Learning', description: 'Analyzing Harvard & real corporate case studies to build strategic thinking.' },
-    { cardText: 'Business Simulation', description: 'Engaging in gamified business decision-making and market simulations.' },
-    { cardText: 'Hands-on Activities', description: 'Practical workshops, prototyping sessions, and live business experiments.' },
-    { cardText: 'Industry-Based Assignments', description: 'Assignments directly linked with current corporate models and market trends.' },
-    { cardText: 'Real-World Problem Solving', description: 'Tackling authentic organizational challenges using analytical frameworks.' },
-    { cardText: 'Presentation & Discussion', description: 'Presenting solutions to peers and faculty to refine communication skills.' },
+    { cardText: 'Case Study Learning', dbId: '521be268-043e-48d1-b376-ec3ce1879dab', description: 'Analyzing Harvard & real corporate case studies to build strategic thinking.' },
+    { cardText: 'Business Simulation', dbId: '2dda8518-f4e8-49ca-a98f-00c05f9aab3e', description: 'Engaging in gamified business decision-making and market simulations.' },
+    { cardText: 'Hands-on Activities', dbId: 'd01fc985-0bc4-4586-a58b-bb7bf86a2f29', description: 'Practical workshops, prototyping sessions, and live business experiments.' },
+    { cardText: 'Industry-Based Assignments', dbId: 'dc9d6beb-5e0c-4f29-b8d1-23477ed493c9', description: 'Assignments directly linked with current corporate models and market trends.' },
+    { cardText: 'Real-World Problem Solving', dbId: '07829f8f-4fda-4838-bb02-11db0b79cbb0', description: 'Tackling authentic organizational challenges using analytical frameworks.' },
+    { cardText: 'Presentation & Discussion', dbId: 'eb7007d9-9d22-4eb2-8deb-dd753d019d60', description: 'Presenting solutions to peers and faculty to refine communication skills.' },
   ],
   'Training-Based Learning': [
-    { cardText: 'Teaching Quality', description: 'Clear, structured lectures delivered with deep domain expertise.' },
-    { cardText: 'Doubt Clarity', description: 'Prompt and clear resolution of concepts during and after lectures.' },
-    { cardText: 'Practical Examples', description: 'Illustrating complex theoretical topics using clear corporate examples.' },
-    { cardText: 'Test & Assessment', description: 'Fair, constructive evaluations that test actual subject mastery.' },
-    { cardText: 'Interactive Classes', description: 'Interactive sessions encouraging active participation and discussion.' },
-    { cardText: 'Classroom Engagement', description: 'Active student participation, vibrant peer dialogue, and engaging learning atmosphere.' },
+    { cardText: 'Teaching Quality', dbId: 'e46757e7-b603-4449-ab59-33ff9b03b0ab', description: 'Clear, structured lectures delivered with deep domain expertise.' },
+    { cardText: 'Doubt Clarity', dbId: 'e68fe72f-2705-4608-aab7-bb36b2e8c414', description: 'Prompt and clear resolution of concepts during and after lectures.' },
+    { cardText: 'Practical Examples', dbId: 'cd034b49-67c5-4f96-b200-77be873c494e', description: 'Illustrating complex theoretical topics using clear corporate examples.' },
+    { cardText: 'Test & Assessment', dbId: '40abcbd0-7794-423c-97cd-d0fe2144e2ec', description: 'Fair, constructive evaluations that test actual subject mastery.' },
+    { cardText: 'Interactive Classes', dbId: '28145b63-8738-496f-97cd-c2bd916d3cd3', description: 'Interactive sessions encouraging active participation and discussion.' },
+    { cardText: 'Classroom Engagement', dbId: '04568a3d-a719-4eb8-b97b-81085918b109', description: 'Active student participation, vibrant peer dialogue, and engaging learning atmosphere.' },
   ],
 };
 
@@ -203,38 +203,55 @@ export async function fetchFeedbackCardsFromSupabase(categoryId, track) {
 
   for (const catId of targetCategories) {
     let officialList = OFFICIAL_CATEGORY_CARDS[catId] || [];
-    if (catId === 'pedagogy' && track && OFFICIAL_PEDAGOGY_CARDS[track]) {
-      officialList = OFFICIAL_PEDAGOGY_CARDS[track];
+    let catDbCards = dbCards.filter(c => c.category_id === catId);
+
+    if (catId === 'pedagogy') {
+      const selectedTrack = (track && track.includes('Train'))
+        ? 'Training-Based Learning'
+        : 'Project-Based Learning';
+      officialList = OFFICIAL_PEDAGOGY_CARDS[selectedTrack];
+      const targetDbTrack = selectedTrack === 'Training-Based Learning' ? 'training' : 'project';
+      catDbCards = catDbCards.filter(c => c.track === targetDbTrack);
     }
-    const catDbCards = dbCards.filter(c => c.category_id === catId);
+
     const usedDbCardIds = new Set();
 
     officialList.forEach((officialCard, idx) => {
-      // 1. Direct text match or known aliases among unused DB cards
-      let match = catDbCards.find(c => {
-        if (usedDbCardIds.has(c.id) || !c.card_text) return false;
-        const dbText = c.card_text.toLowerCase().trim();
-        const offText = officialCard.cardText.toLowerCase().trim();
-        return (
-          dbText === offText ||
-          (offText === 'interactive classes' && dbText === 'classroom engagement') ||
-          (offText === 'classroom engagement' && dbText === 'interactive classes')
-        );
-      });
+      // 1. Direct match by verified DB UUID
+      let match = null;
+      if (officialCard.dbId) {
+        match = catDbCards.find(c => c.id === officialCard.dbId);
+      }
 
-      // 2. Fallback to any unused DB card in this category so IDs are never duplicated
+      // 2. Direct match by card text within the track
+      if (!match) {
+        match = catDbCards.find(c => {
+          if (usedDbCardIds.has(c.id) || !c.card_text) return false;
+          const dbText = c.card_text.toLowerCase().trim();
+          const offText = officialCard.cardText.toLowerCase().trim();
+          return (
+            dbText === offText ||
+            (offText === 'interactive classes' && (dbText === 'interactive classes' || dbText === 'training-based learning'))
+          );
+        });
+      }
+
+      // 3. Fallback within the SAME track
       if (!match) {
         match = catDbCards.find(c => !usedDbCardIds.has(c.id));
       }
 
+      const cardId = match?.id || officialCard.dbId || `${catId}-${idx + 1}`;
       if (match) {
         usedDbCardIds.add(match.id);
+      } else if (officialCard.dbId) {
+        usedDbCardIds.add(officialCard.dbId);
       }
 
       resolvedCards.push({
-        id: match?.id || `${catId}-${idx + 1}`,
+        id: cardId,
         categoryId: catId,
-        track: catId === 'pedagogy' && track ? track : 'general',
+        track: catId === 'pedagogy' ? ((track && track.includes('Train')) ? 'Training-Based Learning' : 'Project-Based Learning') : 'general',
         cardText: officialCard.cardText,
         description: officialCard.description,
         displayOrder: idx + 1,
@@ -331,7 +348,18 @@ export async function saveResponseToSupabase(payload) {
     answered_at: new Date().toISOString(),
   };
 
-  if (payload.cardId) record.feedback_card_id = payload.cardId;
+  let cardId = payload.cardId;
+  if (payload.categoryId === 'pedagogy' && (!cardId || cardId.startsWith('ped-'))) {
+    for (const trackList of Object.values(OFFICIAL_PEDAGOGY_CARDS)) {
+      const match = trackList.find(c => c.cardText.toLowerCase().trim() === (payload.cardText || '').toLowerCase().trim());
+      if (match?.dbId) {
+        cardId = match.dbId;
+        break;
+      }
+    }
+  }
+
+  if (cardId) record.feedback_card_id = cardId;
   if (payload.facultyId) record.faculty_id = payload.facultyId;
   if (payload.facultyCardId) record.faculty_card_id = payload.facultyCardId;
 
