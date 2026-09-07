@@ -94,16 +94,9 @@ export default function FinalScreen({
         </div>
 
         {/* Anonymous Footnote */}
-        <div className="text-xs text-slate-400 font-medium mb-6">
+        <div className="text-xs text-slate-400 font-medium pt-2">
           🔒 Zero personal identification stored. Anonymous session ID: <code className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono text-[11px]">{session?.id?.slice(0, 8)}...</code>
         </div>
-
-        <button
-          onClick={onResetSession}
-          className="w-full py-4 rounded-2xl bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white font-extrabold text-sm transition-all shadow-lg shadow-purple-900/20 active:scale-95"
-        >
-          Submit Another Anonymous Response
-        </button>
       </div>
     </div>
   );
