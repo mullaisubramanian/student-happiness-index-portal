@@ -325,14 +325,21 @@ export default function App() {
 
     // Security & Eligibility Guard:
     // Only allow writes for faculty presented and eligible in this session
-    const isEligible = dynamicFacultyList.some((f) => f.id === facultyId);
-    if (!isEligible) {
+    const eligibleFaculty = dynamicFacultyList.find((f) => f.id === facultyId);
+    if (!eligibleFaculty) {
       console.error(`Blocked attempt to write response for ineligible faculty ID: ${facultyId}`);
-      throw new Error('Faculty member is not eligible for this session.');
+      throw new Error(`Faculty ID ${facultyId} is not in the eligible faculty list for this session.`);
     }
 
     if (!cardObj?.id) {
       throw new Error('Faculty feedback card ID is missing.');
+    }
+
+    // Verify card belongs to the official faculty feedback criteria cards
+    const isValidCard = facultyCards.some((fc) => fc.id === cardObj.id);
+    if (!isValidCard) {
+      console.error(`Blocked attempt to write response for unapproved faculty card ID: ${cardObj.id}`);
+      throw new Error('Faculty feedback card is not valid for this evaluation.');
     }
 
     const payload = {
