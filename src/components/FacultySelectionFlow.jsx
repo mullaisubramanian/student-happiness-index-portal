@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import SwipeCardEngine from './SwipeCardEngine';
 
 export default function FacultySelectionFlow({
@@ -21,16 +21,29 @@ export default function FacultySelectionFlow({
     return faculty.facultyName || ((faculty.displayOrder || faculty.display_order) === 1 || index === 0 ? 'Jenipriya' : 'Karanalingesh');
   };
 
-  // Only show faculty that match the student's programme + year, strictly capped at the 2 eligible faculty
-  const applicableFaculty = facultyList
-    .filter(
+  // Only show faculty that match the student's programme + year, or active universal faculty, strictly capped at the 2 eligible faculty
+  const applicableFaculty = useMemo(() => {
+    const cohortMatches = facultyList.filter(
       (f) => f.programme === session?.programme && f.year === session?.year && f.active !== false
-    )
-    .slice(0, 2)
-    .map((f, idx) => ({
-      ...f,
-      facultyName: getFacultyDisplayName(f, idx),
+    );
+    const list = cohortMatches.length >= 2 ? cohortMatches : facultyList.filter((f) => f.active !== false);
+    return list
+      .slice(0, 2)
+      .map((f, idx) => ({
+        ...f,
+        facultyName: getFacultyDisplayName(f, idx),
+      }));
+  }, [facultyList, session?.programme, session?.year]);
+
+  // Bind faculty feedback cards strictly to the selected faculty being evaluated
+  const activeFacultyCards = useMemo(() => {
+    if (!currentSwipingFaculty) return [];
+    return facultyCards.map((card) => ({
+      ...card,
+      facultyId: currentSwipingFaculty.id,
+      facultyName: currentSwipingFaculty.facultyName,
     }));
+  }, [facultyCards, currentSwipingFaculty]);
 
   // Check how many cards completed for each faculty
   const getFacultyProgress = (facultyId) => {
@@ -85,17 +98,26 @@ export default function FacultySelectionFlow({
   // Handle Card Swipe during State 3
   const handleCardSwipe = async (response, card) => {
     if (isSaving || !currentSwipingFaculty) return;
+
+    // Runtime Guard 1: Verify currentSwipingFaculty is in the active session's eligible cohort list
     if (!applicableFaculty.some((f) => f.id === currentSwipingFaculty.id)) {
       setSaveError('Unauthorized faculty selection.');
       return;
     }
+
+    // Runtime Guard 2: Verify the card belongs to the selected faculty being swiped
+    if (card.facultyId && card.facultyId !== currentSwipingFaculty.id) {
+      setSaveError('Card does not belong to the selected faculty.');
+      return;
+    }
+
     setSaveError(null);
     setIsSaving(true);
 
     try {
-      await onFacultySwipe(response, card, currentSwipingFaculty.id);
+      await onFacultySwipe(response, card, currentSwipingFaculty);
 
-      if (currentCardIndex + 1 < facultyCards.length) {
+      if (currentCardIndex + 1 < activeFacultyCards.length) {
         setCurrentCardIndex((prev) => prev + 1);
       } else {
         // STATE 4: Faculty completed -> Return to Faculty Selection
@@ -151,7 +173,7 @@ export default function FacultySelectionFlow({
 
         {/* Tinder Swipe Engine */}
         <SwipeCardEngine
-          cards={facultyCards}
+          cards={activeFacultyCards}
           currentIndex={currentCardIndex}
           categoryTitle={`FACULTY: ${currentSwipingFaculty.facultyName.toUpperCase()}`}
           trackTitle={`Faculty ${facultyIndex + 1} of ${applicableFaculty.length}`}

@@ -271,28 +271,31 @@ export function normalizeFacultyName(name, displayOrder = 1) {
 }
 
 export async function fetchFacultyFromSupabase(programme, year) {
-  let query = supabase
+  const { data, error } = await supabase
     .from('faculty')
     .select('*')
     .eq('active', true)
     .order('display_order', { ascending: true });
-
-  if (programme) {
-    query = query.eq('programme', programme);
-  }
-  if (year) {
-    query = query.eq('year', year);
-  }
-
-  const { data, error } = await query;
 
   if (error) {
     console.error('Error fetching faculty from Supabase:', error);
     throw new Error(`Failed to load faculty from Supabase: ${error.message}`);
   }
 
-  // Strictly cap at the 2 current eligible faculty for this cohort
-  const eligibleData = (data || []).slice(0, 2);
+  let candidates = data || [];
+
+  // If cohort-specific faculty entries exist in DB matching the student's programme and year, prioritize them
+  if (programme && year) {
+    const cohortMatches = candidates.filter(
+      f => f.programme && f.year && f.programme.toLowerCase() === programme.toLowerCase() && f.year.toLowerCase() === year.toLowerCase()
+    );
+    if (cohortMatches.length >= 2) {
+      candidates = cohortMatches;
+    }
+  }
+
+  // Strictly cap at the 2 current eligible faculty
+  const eligibleData = candidates.slice(0, 2);
 
   return eligibleData.map((f, idx) => ({
     id: f.id,

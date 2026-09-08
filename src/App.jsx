@@ -74,9 +74,10 @@ export default function App() {
     totals['pedagogy'] = 6; // 6 cards per track
 
     // Faculty total is faculty count * criteria count (strictly 2 faculty * 6 cards = 12 cards)
-    const applicableFaculty = facList.filter(
+    const cohortMatches = facList.filter(
       (f) => f.programme === sess.programme && f.year === sess.year && f.active !== false
-    ).slice(0, 2);
+    );
+    const applicableFaculty = (cohortMatches.length >= 2 ? cohortMatches : facList.filter((f) => f.active !== false)).slice(0, 2);
     totals['faculty'] = applicableFaculty.length * fCards.length;
 
     categoryCardTotalsRef.current = totals;
@@ -320,33 +321,67 @@ export default function App() {
   };
 
   // Handle Faculty Card Swipe
-  const handleFacultySwipe = async (responseValue, cardObj, facultyId) => {
-    if (!session) throw new Error('No active session.');
+  const handleFacultySwipe = async (responseValue, cardObj, selectedFaculty) => {
+    if (!session?.id) {
+      console.error('Submission rejected: No active session.');
+      throw new Error('No active session.');
+    }
 
-    // Security & Eligibility Guard:
-    // Only allow writes for faculty presented and eligible in this session
-    const eligibleFaculty = dynamicFacultyList.find((f) => f.id === facultyId);
+    // 1. Validate that selected faculty object is present
+    if (!selectedFaculty) {
+      console.error('Submission rejected: Selected faculty is missing.');
+      throw new Error('Selected faculty is missing.');
+    }
+
+    const facultyId = typeof selectedFaculty === 'object' ? selectedFaculty.id : selectedFaculty;
+    if (!facultyId) {
+      console.error('Submission rejected: Selected faculty ID is missing.');
+      throw new Error('Selected faculty ID is missing.');
+    }
+
+    // 2. Validate that the faculty is in the current session's eligible faculty list for this cohort (or active universal faculty)
+    const cohortMatches = dynamicFacultyList.filter(
+      (f) => f.programme === session.programme && f.year === session.year && f.active !== false
+    );
+    const eligibleCohort = cohortMatches.length >= 2 ? cohortMatches : dynamicFacultyList.filter((f) => f.active !== false);
+    const eligibleFaculty = eligibleCohort.slice(0, 2).find((f) => f.id === facultyId);
     if (!eligibleFaculty) {
-      console.error(`Blocked attempt to write response for ineligible faculty ID: ${facultyId}`);
-      throw new Error(`Faculty ID ${facultyId} is not in the eligible faculty list for this session.`);
+      console.error(`Submission rejected: Faculty ID ${facultyId} is not in the current eligible faculty list for session ${session.id} (${session.programme} • ${session.year}).`);
+      throw new Error(`Faculty is not in the current eligible faculty list for this session.`);
     }
 
-    if (!cardObj?.id) {
-      throw new Error('Faculty feedback card ID is missing.');
+    // 3. Validate that faculty_id equals the selected faculty ID
+    const selectedObjId = typeof selectedFaculty === 'object' ? selectedFaculty.id : selectedFaculty;
+    if (facultyId !== selectedObjId) {
+      console.error(`Submission rejected: faculty_id (${facultyId}) does not equal the selected faculty ID (${selectedObjId}).`);
+      throw new Error('faculty_id does not equal the selected faculty ID.');
     }
 
-    // Verify card belongs to the official faculty feedback criteria cards
-    const isValidCard = facultyCards.some((fc) => fc.id === cardObj.id);
+    // 4. Validate that faculty_card_id is present
+    const facultyCardId = cardObj?.id;
+    if (!facultyCardId) {
+      console.error('Submission rejected: faculty_card_id is missing.');
+      throw new Error('faculty_card_id is missing.');
+    }
+
+    // 5. Validate that faculty_card_id belongs to the selected faculty (deck association)
+    if (cardObj.facultyId && cardObj.facultyId !== facultyId) {
+      console.error(`Submission rejected: faculty_card_id ${facultyCardId} belongs to faculty ${cardObj.facultyId}, but swipe was for selected faculty ${facultyId}.`);
+      throw new Error('faculty_card_id does not belong to the selected faculty.');
+    }
+
+    // 6. Validate that the card belongs to the authentic faculty criteria cards
+    const isValidCard = facultyCards.some((fc) => fc.id === facultyCardId);
     if (!isValidCard) {
-      console.error(`Blocked attempt to write response for unapproved faculty card ID: ${cardObj.id}`);
-      throw new Error('Faculty feedback card is not valid for this evaluation.');
+      console.error(`Submission rejected: faculty_card_id ${facultyCardId} is not an authentic faculty criteria card.`);
+      throw new Error('faculty_card_id does not belong to approved criteria cards.');
     }
 
     const payload = {
       sessionId: session.id,
       categoryId: 'faculty',
       cardId: null,
-      facultyCardId: cardObj.id,
+      facultyCardId: facultyCardId,
       facultyId: facultyId,
       cardText: cardObj.cardText,
       response: responseValue,
@@ -356,7 +391,7 @@ export default function App() {
 
     setResponses((prev) => {
       const filtered = prev.filter(
-        (r) => !(r.categoryId === 'faculty' && r.facultyId === facultyId && r.facultyCardId === cardObj.id)
+        (r) => !(r.categoryId === 'faculty' && r.facultyId === facultyId && r.facultyCardId === facultyCardId)
       );
       return [...filtered, savedRecord];
     });
@@ -366,7 +401,7 @@ export default function App() {
   const handleRetrySwipe = () => {
     if (!pendingSwipe) return;
     if (pendingSwipe.type === 'faculty') {
-      handleFacultySwipe(pendingSwipe.payload.response, pendingSwipe.cardObj, pendingSwipe.facultyId);
+      handleFacultySwipe(pendingSwipe.payload.response, pendingSwipe.cardObj, pendingSwipe.selectedFaculty || pendingSwipe.facultyId);
     } else {
       handleSwipeCard(pendingSwipe.payload.response, pendingSwipe.cardObj);
     }
