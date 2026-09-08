@@ -18,19 +18,15 @@ export default function FacultySelectionFlow({
 
   const getFacultyDisplayName = (faculty, index = 0) => {
     if (!faculty) return '';
-    const name = faculty.facultyName || faculty.faculty_name || '';
-    if (/suresh/i.test(name)) return 'Jeni Priya';
-    if (/ananya/i.test(name)) return 'Karnalingesh';
-    if (/aishwarya|meenakshi|priya deshmukh/i.test(name)) return 'Jeni Priya';
-    if (/rajesh|vikram|siddharth/i.test(name)) return 'Karnalingesh';
-    return name || (index === 0 ? 'Jeni Priya' : 'Karnalingesh');
+    return faculty.facultyName || ((faculty.displayOrder || faculty.display_order) === 1 || index === 0 ? 'Jenipriya' : 'Karanalingesh');
   };
 
-  // Only show faculty that match the student's programme + year from existing admin list
+  // Only show faculty that match the student's programme + year, strictly capped at the 2 eligible faculty
   const applicableFaculty = facultyList
     .filter(
       (f) => f.programme === session?.programme && f.year === session?.year && f.active !== false
     )
+    .slice(0, 2)
     .map((f, idx) => ({
       ...f,
       facultyName: getFacultyDisplayName(f, idx),
@@ -89,6 +85,10 @@ export default function FacultySelectionFlow({
   // Handle Card Swipe during State 3
   const handleCardSwipe = async (response, card) => {
     if (isSaving || !currentSwipingFaculty) return;
+    if (!applicableFaculty.some((f) => f.id === currentSwipingFaculty.id)) {
+      setSaveError('Unauthorized faculty selection.');
+      return;
+    }
     setSaveError(null);
     setIsSaving(true);
 

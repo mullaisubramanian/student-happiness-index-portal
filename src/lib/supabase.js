@@ -262,37 +262,45 @@ export async function fetchFeedbackCardsFromSupabase(categoryId, track) {
   return resolvedCards;
 }
 
-export function normalizeFacultyName(name, index = 0) {
-  if (!name) return index === 0 ? 'Jeni Priya' : 'Karnalingesh';
+export function normalizeFacultyName(name, displayOrder = 1) {
+  if (!name) return displayOrder === 1 ? 'Jenipriya' : 'Karanalingesh';
   const lower = name.toLowerCase().trim();
-  if (lower.includes('suresh')) return 'Jeni Priya';
-  if (lower.includes('ananya')) return 'Karnalingesh';
-  if (/aishwarya|meenakshi|priya deshmukh/i.test(lower)) return 'Jeni Priya';
-  if (/rajesh|vikram|siddharth/i.test(lower)) return 'Karnalingesh';
-  return name;
+  if (lower.includes('jeni')) return 'Jenipriya';
+  if (lower.includes('karan') || lower.includes('karn')) return 'Karanalingesh';
+  return displayOrder === 1 ? 'Jenipriya' : 'Karanalingesh';
 }
 
 export async function fetchFacultyFromSupabase(programme, year) {
-  const { data, error } = await supabase
+  let query = supabase
     .from('faculty')
     .select('*')
-    .eq('programme', programme)
-    .eq('year', year)
     .eq('active', true)
     .order('display_order', { ascending: true });
+
+  if (programme) {
+    query = query.eq('programme', programme);
+  }
+  if (year) {
+    query = query.eq('year', year);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('Error fetching faculty from Supabase:', error);
     throw new Error(`Failed to load faculty from Supabase: ${error.message}`);
   }
 
-  return (data || []).map((f, idx) => ({
+  // Strictly cap at the 2 current eligible faculty for this cohort
+  const eligibleData = (data || []).slice(0, 2);
+
+  return eligibleData.map((f, idx) => ({
     id: f.id,
-    facultyName: normalizeFacultyName(f.faculty_name, idx),
+    facultyName: normalizeFacultyName(f.faculty_name, f.display_order || idx + 1),
     programme: f.programme,
     year: f.year,
     active: f.active,
-    displayOrder: f.display_order,
+    displayOrder: f.display_order || idx + 1,
   }));
 }
 
@@ -339,6 +347,17 @@ export async function fetchFacultyCardsFromSupabase() {
 // --------------------------------------------------------------------
 
 export async function saveResponseToSupabase(payload) {
+  if (payload.categoryId === 'faculty') {
+    if (!payload.facultyId) {
+      console.error('saveResponseToSupabase: Rejected faculty response with missing facultyId:', payload);
+      throw new Error('Faculty response rejected: facultyId is required.');
+    }
+    if (!payload.facultyCardId) {
+      console.error('saveResponseToSupabase: Rejected faculty response with missing facultyCardId:', payload);
+      throw new Error('Faculty response rejected: facultyCardId is required.');
+    }
+  }
+
   const record = {
     id: crypto.randomUUID(),
     session_id: payload.sessionId,
@@ -348,7 +367,7 @@ export async function saveResponseToSupabase(payload) {
     answered_at: new Date().toISOString(),
   };
 
-  let cardId = payload.cardId;
+  let cardId = payload.categoryId === 'faculty' ? null : payload.cardId;
   if (payload.categoryId === 'pedagogy' && (!cardId || cardId.startsWith('ped-'))) {
     for (const trackList of Object.values(OFFICIAL_PEDAGOGY_CARDS)) {
       const match = trackList.find(c => c.cardText.toLowerCase().trim() === (payload.cardText || '').toLowerCase().trim());
@@ -360,8 +379,8 @@ export async function saveResponseToSupabase(payload) {
   }
 
   if (cardId) record.feedback_card_id = cardId;
-  if (payload.facultyId) record.faculty_id = payload.facultyId;
-  if (payload.facultyCardId) record.faculty_card_id = payload.facultyCardId;
+  if (payload.categoryId === 'faculty' && payload.facultyId) record.faculty_id = payload.facultyId;
+  if (payload.categoryId === 'faculty' && payload.facultyCardId) record.faculty_card_id = payload.facultyCardId;
 
   // Use insert with ignoreDuplicates — the NULLS NOT DISTINCT unique constraint
   // means two rows with the same (session_id, category_id, card_id, NULL, NULL)
@@ -391,6 +410,11 @@ export async function saveResponseToSupabase(payload) {
         existingQuery = existingQuery.eq('faculty_id', record.faculty_id);
       } else {
         existingQuery = existingQuery.is('faculty_id', null);
+      }
+      if (record.faculty_card_id) {
+        existingQuery = existingQuery.eq('faculty_card_id', record.faculty_card_id);
+      } else {
+        existingQuery = existingQuery.is('faculty_card_id', null);
       }
 
       const { data: existing, error: fetchErr } = await existingQuery.maybeSingle();

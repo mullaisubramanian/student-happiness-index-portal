@@ -73,10 +73,10 @@ export default function App() {
     });
     totals['pedagogy'] = 6; // 6 cards per track
 
-    // Faculty total is faculty count * criteria count
+    // Faculty total is faculty count * criteria count (strictly 2 faculty * 6 cards = 12 cards)
     const applicableFaculty = facList.filter(
       (f) => f.programme === sess.programme && f.year === sess.year && f.active !== false
-    );
+    ).slice(0, 2);
     totals['faculty'] = applicableFaculty.length * fCards.length;
 
     categoryCardTotalsRef.current = totals;
@@ -213,7 +213,7 @@ export default function App() {
       if (cat.id === 'faculty') {
         const applicableFaculty = dynamicFacultyList.filter(
           (f) => f.programme === session?.programme && f.year === session?.year && f.active !== false
-        );
+        ).slice(0, 2);
         const totalFacultyCards = applicableFaculty.length * facultyCards.length;
         const facResponses = responses.filter((r) => r.categoryId === 'faculty');
         const completed = Math.min(facResponses.length, totalFacultyCards || facResponses.length);
@@ -322,6 +322,18 @@ export default function App() {
   // Handle Faculty Card Swipe
   const handleFacultySwipe = async (responseValue, cardObj, facultyId) => {
     if (!session) throw new Error('No active session.');
+
+    // Security & Eligibility Guard:
+    // Only allow writes for faculty presented and eligible in this session
+    const isEligible = dynamicFacultyList.some((f) => f.id === facultyId);
+    if (!isEligible) {
+      console.error(`Blocked attempt to write response for ineligible faculty ID: ${facultyId}`);
+      throw new Error('Faculty member is not eligible for this session.');
+    }
+
+    if (!cardObj?.id) {
+      throw new Error('Faculty feedback card ID is missing.');
+    }
 
     const payload = {
       sessionId: session.id,

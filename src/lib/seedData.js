@@ -103,12 +103,12 @@ export const OFFICIAL_FACULTY_CARDS = [
 ];
 
 export const INITIAL_FACULTY_LIST = [
-  { id: 'fac-1', facultyName: 'Jeni Priya', programme: 'RTC - RSMART MBA', year: 'First Year', active: true, displayOrder: 1 },
-  { id: 'fac-2', facultyName: 'Karnalingesh', programme: 'RTC - RSMART MBA', year: 'First Year', active: true, displayOrder: 2 },
-  { id: 'fac-3', facultyName: 'Jeni Priya', programme: 'RTC - RSMART MBA', year: 'Second Year', active: true, displayOrder: 1 },
-  { id: 'fac-4', facultyName: 'Karnalingesh', programme: 'RTC - RSMART MBA', year: 'Second Year', active: true, displayOrder: 2 },
-  { id: 'fac-5', facultyName: 'Jeni Priya', programme: 'RGU - RSMART MBA', year: 'First Year', active: true, displayOrder: 1 },
-  { id: 'fac-6', facultyName: 'Karnalingesh', programme: 'RGU - RSMART MBA', year: 'First Year', active: true, displayOrder: 2 },
-  { id: 'fac-7', facultyName: 'Jeni Priya', programme: 'RGU - RSMART MBA', year: 'Second Year', active: true, displayOrder: 1 },
-  { id: 'fac-8', facultyName: 'Karnalingesh', programme: 'RGU - RSMART MBA', year: 'Second Year', active: true, displayOrder: 2 },
+  { id: 'fac-1', facultyName: 'Jenipriya', programme: 'RTC - RSMART MBA', year: 'First Year', active: true, displayOrder: 1 },
+  { id: 'fac-2', facultyName: 'Karanalingesh', programme: 'RTC - RSMART MBA', year: 'First Year', active: true, displayOrder: 2 },
+  { id: 'fac-3', facultyName: 'Jenipriya', programme: 'RTC - RSMART MBA', year: 'Second Year', active: true, displayOrder: 1 },
+  { id: 'fac-4', facultyName: 'Karanalingesh', programme: 'RTC - RSMART MBA', year: 'Second Year', active: true, displayOrder: 2 },
+  { id: 'fac-5', facultyName: 'Jenipriya', programme: 'RGU - RSMART MBA', year: 'First Year', active: true, displayOrder: 1 },
+  { id: 'fac-6', facultyName: 'Karanalingesh', programme: 'RGU - RSMART MBA', year: 'First Year', active: true, displayOrder: 2 },
+  { id: 'fac-7', facultyName: 'Jenipriya', programme: 'RGU - RSMART MBA', year: 'Second Year', active: true, displayOrder: 1 },
+  { id: 'fac-8', facultyName: 'Karanalingesh', programme: 'RGU - RSMART MBA', year: 'Second Year', active: true, displayOrder: 2 },
 ];
